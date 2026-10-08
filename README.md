@@ -9,6 +9,8 @@
   <a href="../../releases/latest">Download&nbsp;&rsaquo;</a>
   &nbsp;&nbsp;
   <a href="#build-from-source">Build from source&nbsp;&rsaquo;</a>
+  <br><br>
+  English&nbsp;·&nbsp;<a href="docs/i18n/README.es.md">Español</a>
 </p>
 
 <br>
