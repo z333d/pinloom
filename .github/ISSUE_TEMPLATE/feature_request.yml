@@ -1,0 +1,14 @@
+name: Feature request
+description: Describe a workflow Pinloom could support.
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What are you trying to do?
+      description: Describe the workflow and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Suggested behavior

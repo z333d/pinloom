@@ -5,10 +5,13 @@ import SwiftUI
 struct PeggedView: View {
     let item: Pegged
     @ObservedObject var line: Line
+    let anchor: CGPoint
 
     @State private var swing: Double = 0
     @State private var arrived = false
     @State private var hovering = false
+    @StateObject private var motion = HangingMotion()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var copied: Bool { line.copiedID == item.id }
     private var dragging: Bool { line.draggingID == item.id }
@@ -17,47 +20,52 @@ struct PeggedView: View {
     var body: some View {
         VStack(spacing: -12) {
             Clothespin()
+                .frame(width: 32, height: 26)
+                .overlay(ClipMoveArea(item: item, line: line, anchor: anchor, motion: motion, reduceMotion: reduceMotion))
+                .help(L("Drag this clip to move only this image. Right-click to reset its position."))
+                .background(GeometryReader { geometry in
+                    Color.clear.preference(key: ClipRectsKey.self,
+                                           value: item.falling ? [:] : [item.id: geometry.frame(in: .global)])
+                })
                 .zIndex(1)
             card
         }
-        .rotationEffect(.degrees(swing + item.tilt), anchor: .top)
+        .rotationEffect(.degrees(swing + item.tilt + motion.degrees), anchor: .top)
         .offset(y: arrived ? 0 : -46)
-        // The fall itself is drawn over the whole screen by CaptureFlight, so
+        // The fall itself is drawn over the whole screen by FallingCard, so
         // the card here just steps aside at once.
-        .opacity(item.falling || item.flying ? 0 : (arrived ? 1 : 0))
+        .opacity(item.falling ? 0 : (arrived ? 1 : 0))
         .transaction { t in if item.falling { t.animation = nil } }
-        .animation(.easeOut(duration: 0.16), value: item.flying)
         .onAppear(perform: arrive)
-        .onChange(of: item.flying) { was, now in if was && !now { land() } }
+        .onDisappear { motion.stop() }
+        .onChange(of: reduceMotion) { _, reduced in if reduced { motion.stop() } }
         .onChange(of: line.gust) { _, _ in breeze() }
         .onChange(of: copied) { _, isCopied in if isCopied { nudge(3) } }
     }
 
     /// The photo fits inside the card area keeping its proportions, so the
     /// white border hugs it whether the screenshot is wide or tall.
-    static func photoSize(for size: CGSize) -> CGSize {
-        let maxW = Layout.cardWidth - 14, maxH: CGFloat = 104
+    static func photoSize(for size: CGSize, scale cardScale: CGFloat = 1) -> CGSize {
+        let maxW = (Layout.cardWidth - 14) * cardScale, maxH: CGFloat = 104 * cardScale
         guard size.width > 0, size.height > 0 else { return CGSize(width: maxW, height: maxH) }
         let scale = min(maxW / size.width, maxH / size.height)
         return CGSize(width: size.width * scale, height: size.height * scale)
     }
 
     /// The card around the photo: the photo plus the glass inset.
-    static func cardSize(for size: CGSize) -> CGSize {
-        let p = photoSize(for: size)
-        return CGSize(width: p.width + Frame.inset * 2, height: p.height + Frame.inset * 2)
+    static func cardSize(for size: CGSize, scale: CGFloat = 1) -> CGSize {
+        let p = photoSize(for: size, scale: scale)
+        return CGSize(width: max(64, p.width) + Frame.inset * 2, height: max(40, p.height) + Frame.inset * 2)
     }
 
-    /// Distance from the top of the hanging view (the clip) to the card.
-    static let cardOffsetBelowTop: CGFloat = 26 - 12
-
-    private var photoSize: CGSize { Self.photoSize(for: item.thumb.size) }
+    private var photoSize: CGSize { Self.photoSize(for: item.thumb.size, scale: item.scale) }
 
     private var card: some View {
         Image(nsImage: item.thumb)
             .resizable()
             .interpolation(.high)
             .frame(width: photoSize.width, height: photoSize.height)
+            .frame(minWidth: 64, minHeight: 40)
             // Concentric corners: the photo's radius is the frame's minus the
             // inset, the way macOS rounds nested shapes.
             .clipShape(RoundedRectangle(cornerRadius: Frame.radius - Frame.inset, style: .continuous))
@@ -86,6 +94,23 @@ struct PeggedView: View {
                     .allowsHitTesting(false)
             }
             .overlay(GrabArea(item: item, line: line))
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: line.isPinned(item) ? "pin.fill" : "pin")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 20, height: 20)
+                    .glassFrame(circle: true).padding(3)
+                    .opacity((hovering || line.isPinned(item)) && !dragging ? 1 : 0)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .frame(width: 22, height: 22).glassFrame(circle: true).padding(3)
+                    .opacity(dragging ? 0 : (hovering || line.resizingID == item.id ? 1 : 0.5))
+                    .allowsHitTesting(false)
+            }
+            .help(L("Click to copy. Double-click to preview. Use the pin to keep a reference image visible."))
             .overlay(alignment: .bottom) {
                 if copied {
                     Label(L("Copied"), systemImage: "checkmark")
@@ -110,22 +135,13 @@ struct PeggedView: View {
     }
 
     private func arrive() {
-        // A capture that flew in is already in place; the flight did the arriving.
-        if item.flying {
-            arrived = true
-            return
-        }
         swing = 16
         withAnimation(.spring(response: 0.42, dampingFraction: 0.72)) { arrived = true }
         withAnimation(.interpolatingSpring(stiffness: 46, damping: 2.6)) { swing = 0 }
     }
 
-    /// Landing after the flight: no jump, just a small sway from rest.
-    private func land() {
-        nudge(2.2)
-    }
-
     private func breeze() {
+        guard line.movingItemID != item.id, line.resizingID != item.id else { return }
         let delay = Double.random(in: 0...0.35)
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             nudge(Double.random(in: 1.6...3.4))
@@ -137,6 +153,61 @@ struct PeggedView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(.interpolatingSpring(stiffness: 38, damping: 2.4)) { swing = 0 }
         }
+    }
+}
+
+private struct ClipMoveArea: NSViewRepresentable {
+    let item: Pegged
+    let line: Line
+    let anchor: CGPoint
+    let motion: HangingMotion
+    let reduceMotion: Bool
+    func makeNSView(context: Context) -> ClipMoveView { ClipMoveView() }
+    func updateNSView(_ view: ClipMoveView, context: Context) {
+        view.anchor = anchor
+        view.onMove = { point in
+            line.move(item.id, to: point)
+            if !reduceMotion, let actual = line.items.first(where: { $0.id == item.id })?.hangingPosition {
+                motion.move(to: actual)
+            }
+        }
+        view.onMoveState = { moving in
+            line.movingItemID = moving ? item.id : nil
+            if moving {
+                line.frontmostItemID = item.id
+                if !reduceMotion { motion.begin(at: anchor, length: PeggedView.cardSize(for: item.thumb.size, scale: item.scale).height / 2) }
+            } else {
+                motion.release()
+            }
+        }
+        view.onReset = { line.resetPosition(item.id) }
+    }
+}
+
+final class ClipMoveView: NSView {
+    var anchor: CGPoint = .zero
+    var onMove: (CGPoint) -> Void = { _ in }
+    var onMoveState: (Bool) -> Void = { _ in }
+    var onReset: () -> Void = {}
+    var resetTitle = L("Reset image position")
+    private var start: (mouse: NSPoint, anchor: CGPoint)?
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
+    override func mouseDown(with event: NSEvent) {
+        start = (NSEvent.mouseLocation, anchor)
+        onMoveState(true)
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard let start else { return }
+        let mouse = NSEvent.mouseLocation
+        onMove(CGPoint(x: start.anchor.x + mouse.x - start.mouse.x,
+                       y: start.anchor.y - mouse.y + start.mouse.y))
+    }
+    override func mouseUp(with event: NSEvent) { start = nil; onMoveState(false) }
+    override func rightMouseDown(with event: NSEvent) {
+        let menu = NSMenu()
+        menu.addItem(ClosureMenuItem(resetTitle, handler: onReset))
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
     }
 }
 

@@ -1,160 +1,60 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/hero-dark.png">
-  <img src="../images/hero-light.png" alt="Tendedero. Capturas, tendidas a secar. Tres capturas en marcos de cristal cuelgan de una línea fina bajo la barra de menús de macOS.">
-</picture>
+# Pinloom
 
-<p align="center">
-  Libre y de código abierto. Para macOS 14 y posteriores.
-  <br>
-  <a href="../../../../releases/latest">Descargar&nbsp;&rsaquo;</a>
-  &nbsp;&nbsp;
-  <a href="#compilar-desde-el-código">Compilar desde el código&nbsp;&rsaquo;</a>
-  <br><br>
-  <a href="../../README.md">English</a>&nbsp;·&nbsp;Español
-  <br>
-  <sub>Traducción del README en inglés. Si no coinciden, vale el inglés.</sub>
-</p>
+Mantén imágenes, notas y tareas a la vista mientras trabajas. Aplicación nativa
+para macOS 14 o posterior, en Apple silicon e Intel.
 
-<br>
+[English](../../README.md) · [简体中文](README.zh-Hans.md)
 
-## Fuera de la vista. A mano.
+![La línea de Pinloom con una nota editable](../images/preview.png)
 
-Cada captura que haces se cuelga en una línea justo encima de tu pantalla.
-Deja el puntero en la barra de menús y baja deslizándose. Apártalo y desaparece.
+## Uso
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/demo-dark.gif">
-  <img src="../images/demo-light.gif" alt="El puntero se apoya en el borde superior, la línea baja con tres capturas balanceándose suavemente, un clic copia una y la línea se recoge cuando el puntero se aparta.">
-</picture>
+Haz clic en el icono de chincheta de la barra de menús para mostrar u ocultar
+la línea. Haz clic derecho para abrir el menú. Permanece visible hasta que la
+ocultas, incluso sobre otras aplicaciones a pantalla completa.
 
-<br>
-<br>
+- **Pegar imagen** añade una imagen del portapapeles.
+- **Añadir imágenes…** abre el selector. También puedes arrastrar archivos a la línea o al icono.
+- **Nueva nota** permite editar texto y añadir tareas con casillas. Todo se guarda localmente.
+- Arrastra la pinza de una tarjeta para moverla y su esquina inferior derecha para cambiar el tamaño.
+- Selecciona texto y usa **Command+C**, o **Copiar nota** para copiar la nota completa con sus tareas.
+- Haz clic en una imagen para copiarla, doble clic para ampliarla o mantén pulsado para usar Marcación.
+- Fija una imagen en una ventana independiente de referencia. Usa una copia propia que sobrevive a cambios del archivo original.
 
-## Un gesto para cada cosa.
+**Organizar** agrupa restablecer posiciones y descolgar imágenes; **Opciones**
+agrupa sonidos y abrir al iniciar sesión. Recuperar una nota y mostrar u ocultar
+referencias aparecen solo cuando son útiles. Ocultar la línea no elimina datos.
+Descolgar conserva el archivo original; **Mover a la Papelera** lo elimina explícitamente.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="../images/bento-dark.png">
-  <img src="../images/bento-light.png" alt="Clic para copiar. Mantén pulsado para marcar. Arrastra para compartir. Suéltala.">
-</picture>
+No observa carpetas de capturas, cambia los ajustes de captura ni registra
+atajos globales. Las imágenes añadidas permanecen hasta que las quitas.
+El vídeo todavía no está disponible.
 
-<br>
-<br>
-
-| | |
-|:--|:--|
-| Clic | Copia la imagen. |
-| Mantener pulsado | Ábrela en Marcación. |
-| Doble clic | Ábrela en Vista Previa. |
-| Arrastrar a una app | Envía una copia. Sigue en la línea. |
-| Arrastrar a una carpeta | Guárdala ahí. Sale de la línea. |
-| Arrastrar a la Papelera, o clic en la cruz | Suéltala. |
-| Dejar el puntero en la barra de menús | Baja la línea en esa pantalla. |
-| Clic en cualquier parte de la barra de menús | Recógela. |
-| <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd>&thinsp;<kbd>T</kbd> | Muestra u oculta la línea. |
-
-<br>
-
-## Tu Escritorio. Por fin despejado.
-
-Deja que Tendedero se encargue de tus capturas<sup>1</sup> y no pasarán por el
-Escritorio. Sin miniatura flotante. Sin esperar cinco segundos. Cada captura
-se cuelga en cuanto la haces, y solo se queda lo que arrastras fuera.
-
-Los mismos atajos. La misma memoria muscular. Solo que sin desorden.
-
-<br>
-
-## Privado por diseño.
-
-Sin cuenta. Sin red. Sin analíticas.
-Tendedero funciona entero en tu Mac, y tus capturas nunca salen de él.
-
-<br>
-
-## Especificaciones
-
-| | |
-|:--|:--|
-| **Compatibilidad** | macOS 14 Sonoma o posterior, en Apple silicon e Intel. Diseñado para macOS 27. |
-| **Tamaño** | 1,7 MB |
-| **Idiomas** | Inglés, español |
-| **Hecho con** | Swift, AppKit y SwiftUI |
-| **Acceso a la red** | Ninguno |
-| **Precio** | Gratis |
-| **Licencia** | MIT para el código. El nombre y el icono no están incluidos. |
-
-<br>
-
-## Instalación
-
-Descarga la imagen de disco de la [última versión](../../../../releases/latest),
-ábrela y arrastra Tendedero a Aplicaciones. O instálalo con Homebrew:
+## Compilar
 
 ```sh
-brew install --cask alejandrobujan/tap/tendedero
+git clone https://github.com/z333d/pinloom.git
+cd pinloom
+swift test
+swift scripts/check-strings.swift
+SIGN_IDENTITY=- scripts/build-app.sh release
+open build/Pinloom.app
 ```
 
-Tendedero está firmado con un Developer ID y notarizado por Apple, así que se
-abre como cualquier otra app.
+Copia la aplicación a Aplicaciones. `scripts/make-dmg.sh` crea una imagen de
+instalación sin abrir Finder. Las compilaciones locales y de CI tienen firma
+ad hoc y no están notarizadas por Apple. Se requieren credenciales propias para
+firmar con Developer ID y notarizar.
 
-<br>
+Pinloom usa su propio identificador y directorio de datos. En el primer inicio
+copia imágenes, notas, posiciones y referencias de las primeras compilaciones
+locales sin borrar los originales ni sobrescribir datos nuevos. Cierra la app
+anterior antes de abrir Pinloom.
 
-## Compilar desde el código
+## Origen y licencia
 
-```sh
-git clone git@github.com:alejandrobujan/tendedero.git
-cd tendedero
-scripts/build-app.sh
-open build/Tendedero.app
-```
-
-Necesitas las herramientas de Swift. Xcode es opcional. Con las Command Line
-Tools de macOS 27, el script recurre al SDK de macOS 26 que instalan a su lado,
-porque el SDK nuevo necesita un plugin de macros de SwiftUI que solo trae Xcode.
-Las compilaciones locales se firman ad hoc, así que macOS vuelve a pedir acceso
-al Escritorio después de cada compilación.
-
-<details>
-<summary>Dentro de la app</summary>
-<br>
-
-| Archivo | Función |
-|:--|:--|
-| `AppDelegate.swift` | Barra de menús, atajo, bajar y recoger la línea |
-| `LinePanel.swift` | La franja transparente a lo largo del borde superior de la pantalla |
-| `LineView.swift` | La línea y dónde cuelga cada foto |
-| `PeggedView.swift` | Una foto: marco de cristal, pinza, balanceo y brisa |
-| `GrabArea.swift` | Clic, pulsación larga, arrastrar y soltar |
-| `ScreenshotWatcher.swift` | Detecta las capturas nuevas |
-| `Inbox.swift` | Se encarga de los ajustes de captura y los deja como estaban |
-| `Markup.swift` | Abre el editor de Marcación del sistema y guarda el resultado |
-| `FullScreen.swift` | Sabe cuándo quedarse oculto |
-| `Line.swift` | Qué hay colgado y qué puedes hacer con ello |
-
-Todas las imágenes de aquí, el icono incluido, están dibujadas con código por
-`scripts/make-icon.swift` y `scripts/make-readme-art.swift`.
-`scripts/make-dmg.sh` crea la imagen de disco para cada versión.
-
-Las traducciones están en `Sources/Tendedero/Resources`, una carpeta `.lproj`
-por idioma. `swift scripts/check-strings.swift` comprueba que no falte ninguna.
-
-</details>
-
-<br>
-
----
-
-<sub>
-1. La primera vez que se abre, Tendedero se ofrece a encargarse de tus capturas. Si aceptas, desactiva la miniatura flotante y guarda las capturas nuevas en su propia carpeta, dos ajustes que también están en Opciones de Cmd+Mayús+5. Tus ajustes anteriores se guardan y se restauran al salir de Tendedero o al desactivar la opción desde la barra de menús. Tendedero se oculta solo mientras una app está a pantalla completa.
-</sub>
-
-<br>
-<br>
-
-<p align="center">
-  <img src="../images/icon.png" width="64" height="64" alt="">
-  <br>
-  <sub>El código tiene licencia MIT. El nombre y el icono de Tendedero no, así que los forks necesitan los suyos. Consulta la <a href="../../LICENSE">LICENSE</a>.</sub>
-  <br>
-  <sub>Diseñado y desarrollado por <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
-</p>
+Mantenido de forma independiente por [z333d](https://github.com/z333d), basado en
+el código MIT de [Tendedero](https://github.com/alejandrobujan/tendedero) de Alejandro
+Buján. Conserva los avisos originales y usa un nombre, icono e imágenes nuevos.
+No es una versión oficial ni está respaldado por el autor original.
+Consulta [LICENSE](../../LICENSE) y [NOTICE](../../NOTICE).

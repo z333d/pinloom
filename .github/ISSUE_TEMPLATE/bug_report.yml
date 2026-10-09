@@ -1,0 +1,23 @@
+name: Bug report
+description: Report unexpected Pinloom behavior.
+labels: [bug]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include what you expected and steps to reproduce.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Pinloom and macOS versions
+      placeholder: Pinloom 0.1.0, macOS 15.7
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Display and app context
+      description: Note full-screen use, multiple monitors, or note/image editing. Share only screenshots without private content.

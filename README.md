@@ -1,155 +1,103 @@
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/hero-dark.png">
-  <img src="docs/images/hero-light.png" alt="Tendedero. Screenshots, hung out to dry. Three screenshots in glass frames hang from a thin line under the macOS menu bar.">
-</picture>
+<p align="center"><img src="docs/images/icon.png" width="96" height="96" alt="Pinloom icon"></p>
 
-<p align="center">
-  Free and open source. For macOS 14 and later.
-  <br>
-  <a href="../../releases/latest">Download&nbsp;&rsaquo;</a>
-  &nbsp;&nbsp;
-  <a href="#build-from-source">Build from source&nbsp;&rsaquo;</a>
-  <br><br>
-  English&nbsp;·&nbsp;<a href="docs/i18n/README.es.md">Español</a>
-</p>
+# Pinloom
 
-<br>
+Keep images and notes in view while you work. Pinloom is a native macOS menu bar
+app with a hanging line that floats above your apps, including full-screen Spaces.
 
-## Out of sight. Within reach.
+[简体中文](docs/i18n/README.zh-Hans.md) · [Español](docs/i18n/README.es.md)
 
-Every screenshot you take hangs on a line just above your screen.
-Rest the pointer in the menu bar and it glides down. Move away and it's gone.
+![Pinloom's line with import controls and an editable note](docs/images/preview.png)
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/demo-dark.gif">
-  <img src="docs/images/demo-light.gif" alt="The pointer rests against the top edge, the line slides down with three screenshots swinging gently, a click copies one, and the line tucks away when the pointer leaves.">
-</picture>
+## Use it
 
-<br>
-<br>
+Click the pin icon in the menu bar to show or hide the line. Right-click it to
+open the menu. The line stays open until you hide it; moving the pointer into
+the menu bar does not open it.
 
-## A gesture for everything.
+- **Paste image** adds an image from your clipboard.
+- **Add images…** opens a file picker. You can also drop files on the line or menu bar icon.
+- **New note** adds editable text and checkable to-dos. Content is saved locally.
+- Drag a card's **clip** to move that card; it swings as you move it.
+- Drag the **bottom-right corner** to resize a card. Position and size are remembered.
+- Select note text and press **Command+C**, or use **Copy note** to copy the whole note, including tasks.
+- Click an image to copy it, double-click for a zoomable preview, or hold to open Markup.
+- Pin an image into its own movable reference window. References own snapshots and remain available if the source moves.
+- **Hide line** hides the board without deleting anything. Removing a card keeps the original file; **Move to Trash** explicitly deletes it.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/bento-dark.png">
-  <img src="docs/images/bento-light.png" alt="Click to copy. Hold to mark up. Drag to share. Let it go.">
-</picture>
+The menu shows recovery and reference controls only when relevant. **Arrange**
+contains reset positions and take images down; **Options** contains sounds and
+open at login. Manually added images stay until you remove them; scroll
+horizontally when they do not fit.
 
-<br>
-<br>
+Pinloom does not watch screenshot folders, change capture settings, or register
+global hotkeys. Keep using your preferred screenshot tool and add the images
+you need. Standard text editing commands work inside notes. Video is not yet supported.
 
-| | |
-|:--|:--|
-| Click | Copy the image. |
-| Press and hold | Open it in Markup. |
-| Double click | Open it in Preview. |
-| Drag into an app | Send a copy. It stays on the line. |
-| Drag into a folder | Keep it there. It leaves the line. |
-| Drag to the Trash, or click the cross | Let it go. |
-| Rest the pointer in the menu bar | Bring the line down on that screen. |
-| Click anything in the menu bar | Put it away. |
-| <kbd>⌃</kbd>&thinsp;<kbd>⌥</kbd>&thinsp;<kbd>T</kbd> | Show or hide the line. |
+## Size and compatibility
 
-<br>
+macOS 14 or later, Apple silicon and Intel. Interface languages: English,
+Spanish and Simplified Chinese. Swift, AppKit and SwiftUI; no account, network
+requests or analytics in the app.
 
-## Your Desktop. Finally clear.
+Images preserve their aspect ratio, fitting a default 136 × 104 point image
+area at 0.65–3 times that size, plus the frame. Notes start at 240 × 220 points
+and resize from 200–480 wide and 160–600 high, constrained by display space.
 
-Hand Tendedero your screenshots<sup>1</sup> and they skip the Desktop
-entirely. No floating thumbnail. No five-second wait. Each capture hangs
-the instant you take it, and only what you drag out is kept.
-
-Same shortcuts. Same muscle memory. Just less mess.
-
-<br>
-
-## Private by design.
-
-No account. No network. No analytics.
-Tendedero runs entirely on your Mac, and your screenshots never leave it.
-
-<br>
-
-## Tech Specs
-
-| | |
-|:--|:--|
-| **Compatibility** | macOS 14 Sonoma or later, on Apple silicon and Intel. Designed for macOS 27. |
-| **Size** | 1.7 MB |
-| **Languages** | English, Spanish |
-| **Built with** | Swift, AppKit and SwiftUI |
-| **Network access** | None |
-| **Price** | Free |
-| **License** | MIT for the code. The name and icon are not included. |
-
-<br>
-
-## Install
-
-Download the disk image from the [latest release](../../releases/latest),
-open it and drag Tendedero to Applications. Or install it with Homebrew:
+## Build and install
 
 ```sh
-brew install --cask alejandrobujan/tap/tendedero
+git clone https://github.com/z333d/pinloom.git
+cd pinloom
+swift test
+swift scripts/check-strings.swift
+SIGN_IDENTITY=- scripts/build-app.sh release
+open build/Pinloom.app
 ```
 
-Tendedero is signed with a Developer ID and notarized by Apple, so it opens
-like any other app.
+The build script creates a universal `build/Pinloom.app`. Drag it to Applications
+for everyday use. `scripts/make-dmg.sh` creates an installation disk image without
+opening Finder or changing window-manager settings. CI also produces an app ZIP
+under [Actions](https://github.com/z333d/pinloom/actions).
 
-<br>
+Local and CI builds are ad hoc signed, **not Apple-notarized**. Distribution with
+a Developer ID requires `SIGN_IDENTITY`; disk image notarization additionally
+requires your own `NOTARY_PROFILE`. This repository does not include signing credentials.
 
-## Build from source
+## Moving from earlier local builds
+
+Pinloom uses its own bundle ID (`io.github.z333d.pinloom`) and Application Support
+directory. On first launch it copies saved images, notes, card layout and
+reference snapshots from earlier local builds under `app.tendedero.Tendedero`.
+Original data stays in place. Existing Pinloom data is not overwritten; a failed
+file copy is retried on the next launch.
+
+If the old screenshot inbox mode is still applied, its saved capture settings
+are restored once. Pinloom never enables that mode. Quit the earlier app before
+opening Pinloom.
+
+## Development notes
+
+`Sources/Pinloom` contains the app; `Tests/PinloomTests` covers native controls,
+clipboard behavior, persistence, layout, references and upgrade migration.
+Run `swift scripts/check-strings.swift` after changing interface text.
+
+The background resize cursor uses an optional private WindowServer property.
+Visible resize handles remain available if that property is unsupported. See
+[the implementation notes](docs/background-cursor.md) and the manual checks there.
+
+To regenerate the documentation images without opening the app:
 
 ```sh
-git clone git@github.com:alejandrobujan/tendedero.git
-cd tendedero
-scripts/build-app.sh
-open build/Tendedero.app
+swift scripts/make-icon.swift docs/images/icon.png
+PINLOOM_NOTE_PREVIEW="$PWD/build/note-preview.png" swift test --filter testNoteEditorRoutesTextAndCheckboxChangesAndNativeHitTargets
+swift scripts/make-readme-art.swift build/note-preview.png docs/images/preview.png
 ```
 
-Requires the Swift toolchain. Xcode is optional. With the Command Line Tools for macOS 27, the script falls back to the macOS 26 SDK they install alongside, because the new SDK needs a SwiftUI macro plugin only Xcode includes. Local builds are signed ad hoc,
-so macOS asks again for access to the Desktop after each rebuild.
+## Origin and license
 
-<details>
-<summary>Inside the app</summary>
-<br>
-
-| File | Role |
-|:--|:--|
-| `AppDelegate.swift` | Menu bar, shortcut, revealing and tucking away the line |
-| `LinePanel.swift` | The transparent strip along the top of the screen |
-| `LineView.swift` | The line and where each photo hangs |
-| `PeggedView.swift` | One photo: glass frame, clip, swing and breeze |
-| `GrabArea.swift` | Click, long press, drag and drop |
-| `ScreenshotWatcher.swift` | Notices new screenshots |
-| `Inbox.swift` | Takes over screenshot settings and puts them back |
-| `Markup.swift` | Opens the system Markup editor and saves the result |
-| `FullScreen.swift` | Knows when to stay hidden |
-| `Line.swift` | What is hanging, and what you can do with it |
-
-Every image here, the icon included, is drawn in code by
-`scripts/make-icon.swift` and `scripts/make-readme-art.swift`.
-`scripts/make-dmg.sh` builds the disk image for releases.
-
-Translations live in `Sources/Tendedero/Resources`, one `.lproj` folder per
-language. `swift scripts/check-strings.swift` checks that none is missing.
-
-</details>
-
-<br>
-
----
-
-<sub>
-1. On first launch, Tendedero offers to handle your screenshots. If you accept, it turns off the floating thumbnail and saves new screenshots to its own folder, two settings also found under Options in Cmd+Shift+5. Your previous settings are saved and restored when Tendedero quits or the option is turned off from the menu bar. Tendedero hides automatically while an app is in full screen.
-</sub>
-
-<br>
-<br>
-
-<p align="center">
-  <img src="docs/images/icon.png" width="64" height="64" alt="">
-  <br>
-  <sub>The code is MIT licensed. The Tendedero name and icon are not, so forks need their own. See <a href="LICENSE">LICENSE</a>.</sub>
-  <br>
-  <sub>Designed and built by <a href="https://alejandrobujan.com">Alejandro Buján</a>.</sub>
-</p>
+Pinloom is independently maintained by [z333d](https://github.com/z333d), based on
+the MIT-licensed code of [Tendedero](https://github.com/alejandrobujan/tendedero) by
+Alejandro Buján. The original copyright and license are preserved in [LICENSE](LICENSE)
+and [NOTICE](NOTICE). Pinloom uses a new name, icon and documentation artwork and
+is not an official release of, or endorsed by, the upstream project.

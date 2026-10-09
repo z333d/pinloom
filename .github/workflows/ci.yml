@@ -1,0 +1,40 @@
+name: Build and test Pinloom
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      SIGN_IDENTITY: "-"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Test native workflows
+        run: swift test
+      - name: Check translations
+        run: swift scripts/check-strings.swift
+      - name: Build universal app
+        run: scripts/build-app.sh release
+      - name: Verify signature and bundle
+        run: |
+          codesign --verify --deep --strict build/Pinloom.app
+          lipo -verify_arch arm64 x86_64 build/Pinloom.app/Contents/MacOS/Pinloom
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' build/Pinloom.app/Contents/Info.plist)" = "io.github.z333d.pinloom"
+      - name: Package app
+        run: ditto -c -k --sequesterRsrc --keepParent build/Pinloom.app build/Pinloom.zip
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Pinloom-universal-macOS
+          path: build/Pinloom.zip
+          if-no-files-found: error
+          retention-days: 14
