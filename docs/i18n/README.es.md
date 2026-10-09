@@ -9,6 +9,9 @@ para macOS 14 o posterior, en Apple silicon e Intel.
 
 ## Uso
 
+Abrir Pinloom desde Aplicaciones muestra la línea, aunque ya esté ejecutándose
+y oculta. Al iniciar sesión automáticamente, permanece oculta hasta que la abras.
+
 Haz clic en el icono de chincheta de la barra de menús para mostrar u ocultar
 la línea. Haz clic derecho para abrir el menú. Permanece visible hasta que la
 ocultas, incluso sobre otras aplicaciones a pantalla completa.

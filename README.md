@@ -11,6 +11,9 @@ app with a hanging line that floats above your apps, including full-screen Space
 
 ## Use it
 
+Opening Pinloom from Applications shows the line, even if it is already running
+and hidden. Launching automatically at login keeps it hidden until you open it.
+
 Click the pin icon in the menu bar to show or hide the line. Right-click it to
 open the menu. The line stays open until you hide it; moving the pointer into
 the menu bar does not open it.

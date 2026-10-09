@@ -99,6 +99,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 self?.references.reposition()
             }
         }
+
+        if LaunchPresentation.shouldShowLine(for: NSAppleEventManager.shared().currentAppleEvent) {
+            showLineOnPurpose()
+        }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showLineOnPurpose()
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
