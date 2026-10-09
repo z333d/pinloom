@@ -115,21 +115,23 @@ final class WorkflowTests: XCTestCase {
     }
 
     func testLegacyScreenshotCleanupRestoresOnlyOwnedSettingsOnce() {
-        let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Tendedero/Screenshots").path
+        // A file URL inferred from a missing path lacks the directory slash.
+        // Ownership must compare normalized paths, regardless of existence.
+        let ownedFolder = directory.appendingPathComponent("NeverCreated/Screenshots", isDirectory: true)
+        let folder = ownedFolder.path
         defaults.set(["location": "/previous", "thumbnail": true], forKey: "inboxSavedSettings")
         defaults.set(true, forKey: "inboxEnabled")
         var values: [String: Any] = ["location": folder, "location-screenshot": folder, "show-thumbnail": false]
         var writes = 0
         let write: (String, Any?) -> Void = { values[$0] = $1; writes += 1 }
-        LegacyScreenshotSettings.restoreIfNeeded(defaults: defaults, read: { values[$0] }, write: write)
+        LegacyScreenshotSettings.restoreIfNeeded(defaults: defaults, ownedFolder: ownedFolder, read: { values[$0] }, write: write)
         XCTAssertEqual(values["location"] as? String, "/previous")
         XCTAssertNil(values["location-screenshot"])
         XCTAssertEqual(values["show-thumbnail"] as? Bool, true)
         XCTAssertNil(defaults.dictionary(forKey: "inboxSavedSettings"))
         XCTAssertFalse(defaults.bool(forKey: "inboxEnabled"))
         XCTAssertEqual(writes, 3)
-        LegacyScreenshotSettings.restoreIfNeeded(defaults: defaults, read: { values[$0] }, write: write)
+        LegacyScreenshotSettings.restoreIfNeeded(defaults: defaults, ownedFolder: ownedFolder, read: { values[$0] }, write: write)
         XCTAssertEqual(writes, 3)
     }
 

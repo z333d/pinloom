@@ -5,6 +5,8 @@ import Foundation
 enum LegacyScreenshotSettings {
     static func restoreIfNeeded(
         defaults: UserDefaults = .standard,
+        ownedFolder: URL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Tendedero/Screenshots", isDirectory: true),
         read: (String) -> Any? = readSystemValue,
         write: (String, Any?) -> Void = writeSystemValue
     ) {
@@ -12,12 +14,11 @@ enum LegacyScreenshotSettings {
             defaults.removeObject(forKey: "inboxEnabled")
             return
         }
-        let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Tendedero/Screenshots", isDirectory: true).standardizedFileURL
+        let ownedPath = ownedFolder.standardizedFileURL.path
         var restoredLocation = false
         for (key, savedKey) in [("location", "location"), ("location-screenshot", "locationScreenshot")] {
             guard let current = read(key) as? String,
-                  URL(fileURLWithPath: (current as NSString).expandingTildeInPath).standardizedFileURL == folder else { continue }
+                  URL(fileURLWithPath: (current as NSString).expandingTildeInPath).standardizedFileURL.path == ownedPath else { continue }
             write(key, saved[savedKey])
             restoredLocation = true
         }
