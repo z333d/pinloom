@@ -60,8 +60,9 @@ for everyday use. `scripts/make-dmg.sh` creates an installation disk image witho
 opening Finder or changing window-manager settings. CI also produces an app ZIP
 under [Actions](https://github.com/z333d/pinloom/actions).
 
-Local and CI builds are ad hoc signed, **not Apple-notarized**. Distribution with
-a Developer ID requires `SIGN_IDENTITY`; disk image notarization additionally
+Local and CI builds default to ad hoc signing, **not Apple-notarized**. The build
+never automatically selects a Developer ID from the keychain. Distribution with
+a Developer ID requires an explicitly supplied `SIGN_IDENTITY`; disk image notarization additionally
 requires your own `NOTARY_PROFILE`. This repository does not include signing credentials.
 
 ## Moving from earlier local builds

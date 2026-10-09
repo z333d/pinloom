@@ -43,7 +43,8 @@ open build/Pinloom.app
 
 Copia la aplicación a Aplicaciones. `scripts/make-dmg.sh` crea una imagen de
 instalación sin abrir Finder. Las compilaciones locales y de CI tienen firma
-ad hoc y no están notarizadas por Apple. Se requieren credenciales propias para
+ad hoc y no están notarizadas por Apple. No se selecciona automáticamente una
+identidad del llavero. Se requieren credenciales propias para
 firmar con Developer ID y notarizar.
 
 Pinloom usa su propio identificador y directorio de datos. En el primer inicio

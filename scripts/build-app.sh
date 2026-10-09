@@ -83,10 +83,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-# Sign with a Developer ID when one is in the keychain (or SIGN_IDENTITY is
-# set), with the hardened runtime and a secure timestamp that notarization
-# requires. Without one, sign ad hoc so the app still runs locally.
-IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/Developer ID Application/{print $2; exit}')}"
+# Ordinary builds always use ad hoc signing. A Developer ID is used only
+# when SIGN_IDENTITY is explicitly supplied; never select a keychain identity.
+IDENTITY="${SIGN_IDENTITY:--}"
 if [ -n "$IDENTITY" ] && [ "$IDENTITY" != "-" ]; then
   codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
   echo "Signed with $IDENTITY"

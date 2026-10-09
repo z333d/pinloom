@@ -40,7 +40,7 @@ open build/Pinloom.app
 
 把 `build/Pinloom.app` 拖入「应用程序」即可日常使用。`scripts/make-dmg.sh` 可生成安装磁盘映像。GitHub [Actions](https://github.com/z333d/pinloom/actions) 也会生成应用 ZIP 构建产物。
 
-本地与 CI 构建使用临时签名，尚未通过 Apple 公证。正式签名需要自己的 Developer ID，仓库不包含签名凭据。
+本地与 CI 构建默认使用临时签名，尚未通过 Apple 公证。脚本不会自动从钥匙串选择 Developer ID；正式签名需要明确指定自己的证书，仓库不包含签名凭据。
 
 ## 从早期本地版本迁移
 
