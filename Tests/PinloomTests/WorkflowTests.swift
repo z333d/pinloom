@@ -598,7 +598,12 @@ final class WorkflowTests: XCTestCase {
         // initial arrival offset; the test window is never ordered onscreen.
         line.move(imageID, to: CGPoint(x: 260, y: 90))
         line.revealed = true
-        let host = NSHostingView(rootView: LineView(line: line))
+        // Measure native hit routing at rest. During the arrival spring,
+        // macOS 15 converts model frames while hitTest uses presentation frames.
+        let host = NSHostingView(rootView: LineView(line: line).transaction {
+            $0.disablesAnimations = true
+            $0.animation = nil
+        })
         host.sizingOptions = []
         let panel = LinePanel(content: host)
         defer { panel.close() }
