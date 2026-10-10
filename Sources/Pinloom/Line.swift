@@ -50,6 +50,10 @@ final class Line: ObservableObject {
     @Published var noteFocusRequest: UUID?
     var onCreateNote: () -> Void = {}
     var onFinishNoteEditing: () -> Void = {}
+    var onAddWebpage: () -> Void = {}
+    @Published private(set) var media: [MediaCard] = []
+    @Published var mediaFocusRequest: UUID?
+    let mediaFolder: URL
 
     /// Only explicit UI actions change visibility; image and note updates
     /// keep the current state. Hiding ends editing without deleting content.
@@ -57,6 +61,7 @@ final class Line: ObservableObject {
         if !shown {
             editingNoteID = nil
             noteFocusRequest = nil
+            mediaFocusRequest = nil
         }
         guard revealed != shown else { return }
         revealed = shown
@@ -84,7 +89,21 @@ final class Line: ObservableObject {
     }
 
     var liveCount: Int { items.filter { !$0.falling }.count }
-    var totalCount: Int { liveCount + notes.count }
+    var totalCount: Int { liveCount + notes.count + media.count }
+    var mediaWidth: CGFloat {
+        media.reduce(0) { $0 + $1.size(available: availableSize).width + 44 }
+    }
+    var trailingWidth: CGFloat { notesWidth + mediaWidth }
+    func mediaPosition(_ card: MediaCard, index: Int, width: CGFloat) -> CGPoint {
+        let size = card.size(available: availableSize)
+        let start = (width - contentWidth) / 2
+        let before = Layout.rowWidth(items: displayItems) + notesWidth + (items.isEmpty ? 0 : 24)
+            + media.prefix(index).reduce(0) { $0 + $1.size(available: availableSize).width + 44 }
+        var note = StickyNote()
+        note.x = card.x; note.y = card.y
+        return NoteLayout.position(note, defaultX: start + before + size.width / 2 + 10,
+                                   size: size, width: width, height: availableHeight)
+    }
     func noteSize(_ note: StickyNote) -> CGSize {
         NoteLayout.size(note, available: CGSize(width: viewportWidth, height: availableHeight))
     }
@@ -96,15 +115,18 @@ final class Line: ObservableObject {
         let width = max(viewportWidth, contentWidth + 40)
         let rendered = displayItems
         let bottom = rendered.enumerated().map { index, item in
-            HangingLayout.position(for: item, index: index, items: rendered, width: width, height: availableHeight, trailingWidth: notesWidth).y
+            HangingLayout.position(for: item, index: index, items: rendered, width: width, height: availableHeight, trailingWidth: trailingWidth).y
                 + PeggedView.cardSize(for: item.thumb.size, scale: item.scale).height + 40
         }.max() ?? 0
         let noteBottom = notes.enumerated().map { index, note in
             notePosition(note, index: index, width: width).y + noteSize(note).height + 40
         }.max() ?? 0
-        return min(availableHeight, max(Layout.panelHeight, max(bottom, noteBottom)))
+        let mediaBottom = media.enumerated().map { index, card in
+            mediaPosition(card, index: index, width: width).y + card.size(available: availableSize).height + 40
+        }.max() ?? 0
+        return min(availableHeight, max(Layout.panelHeight, max(bottom, max(noteBottom, mediaBottom))))
     }
-    var contentWidth: CGFloat { Layout.rowWidth(items: displayItems) + notesWidth }
+    var contentWidth: CGFloat { Layout.rowWidth(items: displayItems) + trailingWidth }
 
     func notePosition(_ note: StickyNote, index: Int, width: CGFloat) -> CGPoint {
         let start = (width - contentWidth) / 2
@@ -121,8 +143,9 @@ final class Line: ObservableObject {
     private var savedPositions: [String: [Double]]
     private var thumbnailLimits: [UUID: Int] = [:]
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, mediaFolder: URL? = nil) {
         self.defaults = defaults
+        self.mediaFolder = mediaFolder ?? ImageImport.folder.deletingLastPathComponent().appendingPathComponent("Media", isDirectory: true)
         savedScales = defaults.dictionary(forKey: "peggedScales") as? [String: Double] ?? [:]
         savedPositions = defaults.dictionary(forKey: "peggedPositions") as? [String: [Double]] ?? [:]
         if let data = defaults.data(forKey: "stickyNotes"), let restored = try? JSONDecoder().decode([StickyNote].self, from: data) {
@@ -136,6 +159,17 @@ final class Line: ObservableObject {
         }
         if let data = defaults.data(forKey: "lastRemovedNote") {
             lastRemovedNote = try? JSONDecoder().decode(StickyNote.self, from: data)
+        }
+        if let data = defaults.data(forKey: "mediaCards"), let saved = try? JSONDecoder().decode([MediaCard].self, from: data) {
+            var seen = Set<UUID>()
+            media = saved.filter { card in
+                guard seen.insert(card.id).inserted, card.width.isFinite, card.height.isFinite,
+                      card.width > 0, card.height > 0, card.playbackTime.isFinite,
+                      card.x?.isFinite != false, card.y?.isFinite != false else { return false }
+                if card.kind == .webpage { return MediaImport.webpageURL(card.source.absoluteString) != nil }
+                guard let file = card.filename, file == "\(card.id.uuidString).\((file as NSString).pathExtension)" else { return false }
+                return FileManager.default.fileExists(atPath: self.mediaFolder.appendingPathComponent(file).path)
+            }
         }
         restore()
         scheduleGust()
@@ -262,7 +296,7 @@ final class Line: ObservableObject {
         let width = max(viewportWidth, contentWidth + 40)
         let rendered = displayItems
         items[index].hangingPosition = HangingLayout.position(for: rendered[index], index: index,
-                                                             items: rendered, width: width, height: availableHeight, trailingWidth: notesWidth)
+                                                             items: rendered, width: width, height: availableHeight, trailingWidth: trailingWidth)
         save()
         onLayoutChange()
     }
@@ -278,6 +312,8 @@ final class Line: ObservableObject {
     func resetPositions() {
         for index in items.indices { items[index].hangingPosition = nil }
         for index in notes.indices { notes[index].x = nil; notes[index].y = nil }
+        for index in media.indices { media[index].x = nil; media[index].y = nil }
+        saveMedia()
         saveNotes()
         savedPositions.removeAll()
         save()
@@ -285,6 +321,84 @@ final class Line: ObservableObject {
     }
 
     // MARK: Notes
+
+    func mediaURL(_ card: MediaCard) -> URL {
+        card.filename.map { mediaFolder.appendingPathComponent($0) } ?? card.source
+    }
+    @discardableResult
+    func addWebpage(_ url: URL) -> UUID? {
+        guard let url = MediaImport.webpageURL(url.absoluteString) else { return nil }
+        if let existing = media.first(where: { $0.kind == .webpage && $0.source == url }) {
+            mediaFocusRequest = existing.id; return existing.id
+        }
+        let card = MediaCard(kind: .webpage, source: url, filename: nil, title: url.host ?? url.absoluteString,
+                             width: 480, height: 360)
+        media.append(card); mediaFocusRequest = card.id; saveMedia(); onLayoutChange()
+        return card.id
+    }
+    @discardableResult
+    func addVideo(_ source: URL) async throws -> UUID {
+        let source = source.standardizedFileURL.resolvingSymlinksInPath()
+        if let existing = media.first(where: { $0.kind == .video && $0.source == source }) {
+            mediaFocusRequest = existing.id; return existing.id
+        }
+        guard MediaImport.isVideo(source) else { throw CocoaError(.fileReadUnsupportedScheme) }
+        try await MediaImport.validateVideo(source)
+        // Recheck after suspension so simultaneous imports don't create duplicates.
+        if let existing = media.first(where: { $0.kind == .video && $0.source == source }) {
+            mediaFocusRequest = existing.id; return existing.id
+        }
+        let id = UUID()
+        let filename = "\(id.uuidString).\(source.pathExtension.lowercased())"
+        let destination = mediaFolder.appendingPathComponent(filename)
+        let folder = mediaFolder
+        try await Task.detached(priority: .userInitiated) {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: source, to: destination)
+        }.value
+        if let existing = media.first(where: { $0.kind == .video && $0.source == source }) {
+            try? FileManager.default.removeItem(at: destination)
+            mediaFocusRequest = existing.id
+            return existing.id
+        }
+        let card = MediaCard(id: id, kind: .video, source: source, filename: filename,
+                             title: source.lastPathComponent, width: 384, height: 260)
+        media.append(card); mediaFocusRequest = card.id; saveMedia(); onLayoutChange()
+        return card.id
+    }
+    func moveMedia(_ id: UUID, to point: CGPoint) {
+        guard point.x.isFinite, point.y.isFinite, let index = media.firstIndex(where: { $0.id == id }) else { return }
+        media[index].x = point.x; media[index].y = point.y
+        let clamped = mediaPosition(media[index], index: index, width: max(viewportWidth, contentWidth + 40))
+        media[index].x = clamped.x; media[index].y = clamped.y
+        saveMedia(); onLayoutChange()
+    }
+    func resizeMedia(_ id: UUID, to size: CGSize) {
+        guard size.width.isFinite, size.height.isFinite, let index = media.firstIndex(where: { $0.id == id }) else { return }
+        var card = media[index]; card.width = size.width; card.height = size.height
+        let bounded = card.size(available: availableSize)
+        media[index].width = bounded.width; media[index].height = bounded.height
+        saveMedia(); onLayoutChange()
+    }
+    func resetMediaPosition(_ id: UUID) {
+        guard let index = media.firstIndex(where: { $0.id == id }) else { return }
+        media[index].x = nil; media[index].y = nil; saveMedia(); onLayoutChange()
+    }
+    func updateMedia(_ id: UUID, url: URL? = nil, playbackTime: Double? = nil) {
+        guard let index = media.firstIndex(where: { $0.id == id }) else { return }
+        if let url, media[index].kind == .webpage, let valid = MediaImport.webpageURL(url.absoluteString) { media[index].source = valid }
+        if let playbackTime, playbackTime.isFinite { media[index].playbackTime = max(0, playbackTime) }
+        saveMedia()
+    }
+    func removeMedia(_ id: UUID) {
+        guard let card = media.first(where: { $0.id == id }) else { return }
+        if let file = card.filename, file == "\(card.id.uuidString).\((file as NSString).pathExtension)" {
+            try? FileManager.default.removeItem(at: mediaFolder.appendingPathComponent(file))
+        }
+        media.removeAll { $0.id == id }; saveMedia(); onLayoutChange()
+        if mediaFocusRequest == id { mediaFocusRequest = nil }
+    }
+    private func saveMedia() { defaults.set(try? JSONEncoder().encode(media), forKey: "mediaCards") }
 
     @discardableResult
     func addNote() -> UUID {

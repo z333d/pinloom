@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let host = DropHostingView(rootView: LineView(line: line))
         host.sizingOptions = []
-        host.registerForDraggedTypes([.fileURL, .png, .tiff])
+        host.registerForDraggedTypes([.fileURL, .URL, .string, .png, .tiff])
         host.onDrop = { [weak self] pasteboard in self?.importImages(pasteboard) ?? false }
         panel = LinePanel(content: host)
         placeLine()
@@ -56,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         line.onChooseImages = { [weak self] in self?.chooseImages() }
         line.onImportImages = { [weak self] pasteboard in self?.importImages(pasteboard) ?? false }
         line.onCreateNote = { [weak self] in self?.createNote() }
+        line.onAddWebpage = { [weak self] in self?.chooseWebpage() }
         line.onFinishNoteEditing = { [weak self] in self?.panel.resignKey() }
         NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.line.editingNoteID = nil }
@@ -78,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             .sink { [weak self] _ in self?.itemsChanged() }
             .store(in: &cancellables)
         line.$notes.receive(on: RunLoop.main).sink { [weak self] _ in self?.itemsChanged() }.store(in: &cancellables)
+        line.$media.receive(on: RunLoop.main).sink { [weak self] _ in self?.itemsChanged() }.store(in: &cancellables)
 
         // Keep an explicitly opened line above applications after a Space
         // switch. These notifications never open a hidden line.
@@ -113,6 +115,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         stopMouseTracking()
         references.saveFrames()
+        func pauseMedia(in view: NSView) {
+            (view as? MediaCardBody)?.pause()
+            view.subviews.forEach { pauseMedia(in: $0) }
+        }
+        if let content = panel?.contentView { pauseMedia(in: content) }
     }
 
     // MARK: Showing and hiding
@@ -246,9 +253,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.removeAllItems()
         menu.addItem(ClosureMenuItem(line.revealed ? L("Hide line") : L("Show line")) { [weak self] in self?.toggle() })
         menu.addItem(.separator())
-        menu.addItem(ClosureMenuItem(L("Paste image")) { [weak self] in _ = self?.importImages(.general) })
-        menu.addItem(ClosureMenuItem(L("Add images…")) { [weak self] in self?.chooseImages() })
+        menu.addItem(ClosureMenuItem(L("Paste")) { [weak self] in _ = self?.importImages(.general) })
+        menu.addItem(ClosureMenuItem(L("Add files…")) { [weak self] in self?.chooseImages() })
         menu.addItem(ClosureMenuItem(L("New note")) { [weak self] in self?.createNote() })
+        menu.addItem(ClosureMenuItem(L("Add webpage…")) { [weak self] in self?.chooseWebpage() })
         if line.lastRemovedNote != nil {
             menu.addItem(ClosureMenuItem(L("Restore last note")) { [weak self] in
                 self?.line.restoreLastNote(); self?.showLineOnPurpose()
@@ -265,6 +273,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let actions = NSMenu()
             let reset = ClosureMenuItem(L("Reset all positions")) { [weak self] in self?.line.resetPositions() }
             reset.isEnabled = line.items.contains { $0.hangingPosition != nil } || line.notes.contains { $0.x != nil || $0.y != nil }
+                || line.media.contains { $0.x != nil || $0.y != nil }
             actions.addItem(reset)
             let clear = ClosureMenuItem(L("Take images down")) { [weak self] in self?.line.clear() }
             clear.isEnabled = line.liveCount > 0
@@ -299,13 +308,47 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func chooseImages() {
         let chooser = NSOpenPanel()
-        chooser.allowedContentTypes = [.image]
+        chooser.allowedContentTypes = [.image, .movie]
         chooser.allowsMultipleSelection = true
         NSApp.activate(ignoringOtherApps: true)
         guard chooser.runModal() == .OK else { return }
         var accepted = false
-        for url in chooser.urls { if line.hang(url) != nil { accepted = true } }
+        for url in chooser.urls { if importFile(url) { accepted = true } }
         if accepted { showLineOnPurpose() }
+    }
+
+    private func importFile(_ url: URL) -> Bool {
+        if MediaImport.isVideo(url) {
+            Task { [weak self] in
+                guard let self else { return }
+                do {
+                    _ = try await self.line.addVideo(url)
+                    if self.line.revealed { self.showLineOnPurpose() }
+                }
+                catch { self.showError(L("Could not import video"), error.localizedDescription) }
+            }
+            return true
+        }
+        if line.items.contains(where: { $0.url.imageIdentityPath == url.imageIdentityPath && !$0.falling }) { return true }
+        return line.hang(url) != nil
+    }
+
+    private func chooseWebpage() {
+        let alert = NSAlert()
+        alert.messageText = L("Add webpage…")
+        alert.informativeText = L("Enter a webpage address to keep it on the line.")
+        alert.addButton(withTitle: L("Hang webpage")); alert.addButton(withTitle: L("Cancel"))
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 420, height: 26))
+        field.placeholderString = "https://example.com"
+        if let url = MediaImport.webpageURL(from: .general) { field.stringValue = url.absoluteString }
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard let url = MediaImport.webpageURL(field.stringValue), line.addWebpage(url) != nil else {
+            showError(L("Invalid webpage address"), L("Enter an http or https address.")); return
+        }
+        showLineOnPurpose()
     }
 
     @discardableResult
@@ -313,17 +356,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         var accepted = false
         let urls = ImageImport.urls(from: pasteboard)
         for url in urls {
-            if line.items.contains(where: { $0.url.imageIdentityPath == url.imageIdentityPath && !$0.falling }) {
-                accepted = true
-            } else if line.hang(url) != nil { accepted = true }
+            if importFile(url) { accepted = true }
         }
         if !accepted && urls.isEmpty {
             do {
                 if let url = try ImageImport.imageFile(from: pasteboard) { accepted = line.hang(url) != nil }
+                else if let url = MediaImport.webpageURL(from: pasteboard) { accepted = line.addWebpage(url) != nil }
             } catch { showError(L("Could not import image"), error.localizedDescription); return false }
         }
         if accepted { showLineOnPurpose() }
-        else { showError(L("No image found"), L("Copy an image or an image file, then try again.")) }
+        else { showError(L("Nothing to hang"), L("Copy an image, video file or webpage address, then try again.")) }
         return accepted
     }
 

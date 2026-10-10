@@ -1,7 +1,6 @@
 "Click to copy. Double-click to preview. Use the pin to keep a reference image visible." = "单击复制，双击预览。点击图钉，让参考图保持可见。";
 "Copied" = "已复制";
 "Copy" = "复制";
-"Copy an image or an image file, then try again." = "请先复制图片或图片文件，再试一次。";
 "Copy to Desktop" = "复制到桌面";
 "Could not change the login setting" = "无法修改开机启动设置";
 "Could not import image" = "无法导入图片";
@@ -9,7 +8,6 @@
 "Drag the bottom-right corner to resize this image on the line." = "拖动右下角，调整挂绳上这张图片的大小。";
 "Drag this clip to move only this image. Right-click to reset its position." = "拖动夹子来移动这张图片。右键可恢复位置。";
 "Fit" = "适应窗口";
-"Paste image" = "粘贴图片";
 "New note" = "新建便签";
 "Note" = "便签";
 "Note text" = "便签正文";
@@ -19,8 +17,6 @@
 "Remove to-do" = "移除待办";
 "Remove note" = "移除便签";
 "Restore last note" = "恢复上张便签";
-"Add images…" = "添加图片…";
-"Drop images here" = "将图片拖到这里";
 "Or click to choose images" = "或点击选择图片";
 "Hide line" = "收起挂绳";
 "Hide reference images" = "隐藏参考图";
@@ -29,7 +25,6 @@
 "Markup" = "标注";
 "Move Pinloom to the Applications folder and try again." = "请将 Pinloom 移到「应用程序」文件夹，再试一次。";
 "Move to Trash" = "移到废纸篓";
-"No image found" = "未找到图片";
 "Open at login" = "开机启动";
 "Open in default app" = "用默认应用打开";
 "Pin reference image" = "固定参考图";
@@ -61,3 +56,22 @@
 "Select All" = "全选";
 "Pinloom line" = "Pinloom 挂绳";
 "Undo" = "撤销";
+"Add files…" = "添加文件…";
+"Add webpage…" = "添加网页…";
+"Back" = "后退";
+"Forward" = "前进";
+"Reload" = "刷新";
+"Cancel" = "取消";
+"Could not import video" = "无法导入视频";
+"Could not load webpage" = "无法加载网页，可刷新或在浏览器中打开";
+"Could not play video" = "无法播放视频，请尝试在默认应用中打开";
+"Drop images, videos or links here" = "将图片、视频或链接拖到这里";
+"Enter a webpage address to keep it on the line." = "输入网址，将网页挂在工作界面旁边。";
+"Enter an http or https address." = "请输入 http 或 https 网址。";
+"Hang webpage" = "挂上网页";
+"Invalid webpage address" = "网址无效";
+"Nothing to hang" = "没有可挂的内容";
+"Copy an image, video file or webpage address, then try again." = "请先复制图片、视频文件或网址，再尝试粘贴。";
+"Remove card" = "移除卡片";
+"Reset card position" = "恢复卡片位置";
+"Webpage" = "网页";

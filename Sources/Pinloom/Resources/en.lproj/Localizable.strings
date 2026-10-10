@@ -1,7 +1,6 @@
 "Click to copy. Double-click to preview. Use the pin to keep a reference image visible." = "Click to copy. Double-click to preview. Use the pin to keep a reference image visible.";
 "Copied" = "Copied";
 "Copy" = "Copy";
-"Copy an image or an image file, then try again." = "Copy an image or an image file, then try again.";
 "Copy to Desktop" = "Copy to Desktop";
 "Could not change the login setting" = "Could not change the login setting";
 "Could not import image" = "Could not import image";
@@ -9,7 +8,6 @@
 "Drag the bottom-right corner to resize this image on the line." = "Drag the bottom-right corner to resize this image on the line.";
 "Drag this clip to move only this image. Right-click to reset its position." = "Drag this clip to move only this image. Right-click to reset its position.";
 "Fit" = "Fit";
-"Paste image" = "Paste image";
 "New note" = "New note";
 "Note" = "Note";
 "Note text" = "Note text";
@@ -19,8 +17,6 @@
 "Remove to-do" = "Remove to-do";
 "Remove note" = "Remove note";
 "Restore last note" = "Restore last note";
-"Add images…" = "Add images…";
-"Drop images here" = "Drop images here";
 "Or click to choose images" = "Or click to choose images";
 "Hide line" = "Hide line";
 "Hide reference images" = "Hide reference images";
@@ -29,7 +25,6 @@
 "Markup" = "Markup";
 "Move Pinloom to the Applications folder and try again." = "Move Pinloom to the Applications folder and try again.";
 "Move to Trash" = "Move to Trash";
-"No image found" = "No image found";
 "Open at login" = "Open at login";
 "Open in default app" = "Open in default app";
 "Pin reference image" = "Pin reference image";
@@ -61,3 +56,22 @@
 "Select All" = "Select All";
 "Pinloom line" = "Pinloom line";
 "Undo" = "Undo";
+"Add files…" = "Add files…";
+"Add webpage…" = "Add webpage…";
+"Back" = "Back";
+"Forward" = "Forward";
+"Reload" = "Reload";
+"Cancel" = "Cancel";
+"Could not import video" = "Could not import video";
+"Could not load webpage" = "Could not load webpage";
+"Could not play video" = "Could not play video";
+"Drop images, videos or links here" = "Drop images, videos or links here";
+"Enter a webpage address to keep it on the line." = "Enter a webpage address to keep it on the line.";
+"Enter an http or https address." = "Enter an http or https address.";
+"Hang webpage" = "Hang webpage";
+"Invalid webpage address" = "Invalid webpage address";
+"Nothing to hang" = "Nothing to hang";
+"Copy an image, video file or webpage address, then try again." = "Copy an image, video file or webpage address, then try again.";
+"Remove card" = "Remove card";
+"Reset card position" = "Reset card position";
+"Webpage" = "Webpage";

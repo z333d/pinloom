@@ -1,7 +1,6 @@
 "Click to copy. Double-click to preview. Use the pin to keep a reference image visible." = "Haz clic para copiar, doble clic para previsualizar y usa la chincheta para mantener la imagen visible.";
 "Copied" = "Copiado";
 "Copy" = "Copiar";
-"Copy an image or an image file, then try again." = "Copia una imagen o un archivo de imagen e inténtalo de nuevo.";
 "Copy to Desktop" = "Copiar al Escritorio";
 "Could not change the login setting" = "No se pudo cambiar el inicio de sesión";
 "Could not import image" = "No se pudo importar la imagen";
@@ -9,7 +8,6 @@
 "Drag the bottom-right corner to resize this image on the line." = "Arrastra la esquina inferior derecha para cambiar el tamaño de esta imagen en la línea.";
 "Drag this clip to move only this image. Right-click to reset its position." = "Arrastra esta pinza para mover solo esta imagen. Haz clic derecho para restablecer su posición.";
 "Fit" = "Ajustar";
-"Paste image" = "Pegar imagen";
 "New note" = "Nueva nota";
 "Note" = "Nota";
 "Note text" = "Texto de la nota";
@@ -19,8 +17,6 @@
 "Remove to-do" = "Eliminar tarea";
 "Remove note" = "Retirar nota";
 "Restore last note" = "Restaurar última nota";
-"Add images…" = "Añadir…";
-"Drop images here" = "Arrastra imágenes aquí";
 "Or click to choose images" = "O haz clic para elegir imágenes";
 "Hide line" = "Ocultar línea";
 "Hide reference images" = "Ocultar imágenes de referencia";
@@ -29,7 +25,6 @@
 "Markup" = "Marcación";
 "Move Pinloom to the Applications folder and try again." = "Mueve Pinloom a la carpeta Aplicaciones y vuelve a intentarlo.";
 "Move to Trash" = "Mover a la Papelera";
-"No image found" = "No se encontró ninguna imagen";
 "Open at login" = "Abrir al iniciar sesión";
 "Open in default app" = "Abrir en la aplicación predeterminada";
 "Pin reference image" = "Fijar imagen de referencia";
@@ -61,3 +56,22 @@
 "Select All" = "Seleccionar todo";
 "Pinloom line" = "Pinloom";
 "Undo" = "Deshacer";
+"Add files…" = "Añadir archivos…";
+"Add webpage…" = "Añadir página web…";
+"Back" = "Atrás";
+"Forward" = "Adelante";
+"Reload" = "Recargar";
+"Cancel" = "Cancelar";
+"Could not import video" = "No se pudo importar el vídeo";
+"Could not load webpage" = "No se pudo cargar la página. Recarga o abre en el navegador.";
+"Could not play video" = "No se pudo reproducir el vídeo. Prueba la aplicación predeterminada.";
+"Drop images, videos or links here" = "Arrastra imágenes, vídeos o enlaces aquí";
+"Enter a webpage address to keep it on the line." = "Introduce una dirección para mantener la página en la línea.";
+"Enter an http or https address." = "Introduce una dirección http o https.";
+"Hang webpage" = "Colgar página";
+"Invalid webpage address" = "Dirección no válida";
+"Nothing to hang" = "No hay contenido para colgar";
+"Copy an image, video file or webpage address, then try again." = "Copia una imagen, un archivo de vídeo o una dirección web e inténtalo de nuevo.";
+"Remove card" = "Quitar tarjeta";
+"Reset card position" = "Restablecer posición";
+"Webpage" = "Página web";

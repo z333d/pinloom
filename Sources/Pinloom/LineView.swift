@@ -55,7 +55,7 @@ struct LineView: View {
                         Rope(width: rowWidth)
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                             let anchor = HangingLayout.position(for: item, index: index, items: items,
-                                                                width: rowWidth, height: line.availableHeight, trailingWidth: line.notesWidth)
+                                                                width: rowWidth, height: line.availableHeight, trailingWidth: line.trailingWidth)
                             let ropeY = Layout.ropeY(x: anchor.x, width: rowWidth)
                             Path { path in
                                 path.move(to: CGPoint(x: anchor.x, y: ropeY))
@@ -77,6 +77,17 @@ struct LineView: View {
                                 .zIndex(line.frontmostItemID == note.id ? 100 : Double(line.items.count + index))
                                 .id(note.id)
                         }
+                        ForEach(Array(line.media.enumerated()), id: \.element.id) { index, card in
+                            let anchor = line.mediaPosition(card, index: index, width: rowWidth)
+                            Path { path in
+                                path.move(to: CGPoint(x: anchor.x, y: Layout.ropeY(x: anchor.x, width: rowWidth)))
+                                path.addLine(to: CGPoint(x: anchor.x, y: anchor.y + Layout.pinAbove))
+                            }.stroke(Color(white: 0.55).opacity(0.6), lineWidth: 1).allowsHitTesting(false)
+                            MediaCardView(card: card, line: line, anchor: anchor)
+                                .position(x: anchor.x, y: anchor.y + (card.size(available: line.availableSize).height + 14) / 2)
+                                .zIndex(line.frontmostItemID == card.id ? 100 : Double(line.items.count + line.notes.count + index))
+                                .id(card.id)
+                        }
                     }.frame(width: rowWidth, height: geo.size.height)
                 }
                 .scrollIndicators(.hidden)
@@ -91,9 +102,10 @@ struct LineView: View {
                     ImportButton(line: line, action: .clipboard)
                     ImportButton(line: line, action: .files)
                     ImportButton(line: line, action: .note)
+                    ImportButton(line: line, action: .webpage)
                     LineDismissButton(line: line)
                 }
-                    .frame(width: 418, height: 26)
+                    .frame(width: 524, height: 26)
                     .position(x: width / 2, y: 16)
             }
             .animation(.spring(response: 0.55, dampingFraction: 0.78), value: line.items.map(\.id))
@@ -164,7 +176,7 @@ private struct ImportHint: View {
     @ObservedObject var line: Line
     var body: some View {
         VStack(spacing: 7) {
-            Label(L("Drop images here"), systemImage: "photo.badge.plus")
+            Label(L("Drop images, videos or links here"), systemImage: "photo.badge.plus")
                 .font(.system(size: 12, weight: .medium, design: .rounded))
             Text(L("Or click to choose images"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)

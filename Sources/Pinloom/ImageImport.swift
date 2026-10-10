@@ -14,7 +14,8 @@ enum ImageImport {
         (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
     }
     static func supports(_ pasteboard: NSPasteboard) -> Bool {
-        !urls(from: pasteboard).isEmpty || pasteboard.canReadObject(forClasses: [NSImage.self], options: nil)
+        !urls(from: pasteboard).isEmpty || MediaImport.webpageURL(from: pasteboard) != nil
+            || pasteboard.canReadObject(forClasses: [NSImage.self], options: nil)
     }
     static func imageFile(from pasteboard: NSPasteboard, in destination: URL = folder) throws -> URL? {
         guard let image = NSImage(pasteboard: pasteboard), let tiff = image.tiffRepresentation,
@@ -33,7 +34,7 @@ final class StatusDropView: NSView {
     var onRightClick: () -> Void = {}
     override init(frame: NSRect) {
         super.init(frame: frame)
-        registerForDraggedTypes([.fileURL, .png, .tiff])
+        registerForDraggedTypes([.fileURL, .URL, .string, .png, .tiff])
         toolTip = L("Click to show or hide the line. Right-click for the menu.")
         setAccessibilityHelp(toolTip)
         setAccessibilityLabel(L("Show or hide line"))

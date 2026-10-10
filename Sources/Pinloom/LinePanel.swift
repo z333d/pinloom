@@ -42,7 +42,7 @@ final class LinePanel: NSPanel {
         var hit = content.hitTest(pointInParent)
         while let view = hit {
             if view is GrabView || view is LineDismissView || view is ClipMoveView || view is LineImportView
-                || view is StickyNoteBody || view is NoteResizeView { return view }
+                || view is StickyNoteBody || view is MediaCardBody || view is NoteResizeView { return view }
             hit = view.superview
         }
         return nil

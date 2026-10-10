@@ -1,12 +1,13 @@
 import SwiftUI
 
 enum LineImportAction {
-    case clipboard, files, note
+    case clipboard, files, note, webpage
     var title: String {
         switch self {
-        case .clipboard: return L("Paste image")
-        case .files: return L("Add images…")
+        case .clipboard: return L("Paste")
+        case .files: return L("Add files…")
         case .note: return L("New note")
+        case .webpage: return L("Add webpage…")
         }
     }
     var symbol: String {
@@ -14,6 +15,7 @@ enum LineImportAction {
         case .clipboard: return "doc.on.clipboard"
         case .files: return "photo.badge.plus"
         case .note: return "note.text.badge.plus"
+        case .webpage: return "globe"
         }
     }
 }
@@ -36,7 +38,7 @@ final class LineImportView: NSView {
 
     override init(frame: NSRect) {
         super.init(frame: frame)
-        registerForDraggedTypes([.fileURL, .png, .tiff])
+        registerForDraggedTypes([.fileURL, .URL, .string, .png, .tiff])
         setAccessibilityElement(true)
         setAccessibilityRole(.button)
     }
@@ -47,6 +49,7 @@ final class LineImportView: NSView {
             case .clipboard: line.onPasteImage()
             case .files: line.onChooseImages()
             case .note: line.onCreateNote()
+            case .webpage: line.onAddWebpage()
             }
         }
         onDrop = { line.onImportImages($0) }

@@ -1,6 +1,6 @@
 # Pinloom
 
-Mantén imágenes, notas y tareas a la vista mientras trabajas. Aplicación nativa
+Mantén imágenes, vídeos, páginas web, notas y tareas a la vista mientras trabajas. Aplicación nativa
 para macOS 14 o posterior, en Apple silicon e Intel.
 
 [English](../../README.md) · [简体中文](README.zh-Hans.md)
@@ -16,8 +16,10 @@ Haz clic en el icono de chincheta de la barra de menús para mostrar u ocultar
 la línea. Haz clic derecho para abrir el menú. Permanece visible hasta que la
 ocultas, incluso sobre otras aplicaciones a pantalla completa.
 
-- **Pegar imagen** añade una imagen del portapapeles.
-- **Añadir imágenes…** abre el selector. También puedes arrastrar archivos a la línea o al icono.
+- **Pegar** añade imágenes, archivos de vídeo copiados o direcciones web.
+- **Añadir archivos…** abre el selector de imágenes y vídeos locales. También puedes arrastrar archivos o enlaces a la línea o al icono.
+- **Añadir página web…** acepta una dirección. Las tarjetas permiten desplazarse, seleccionar texto, seguir enlaces, volver, avanzar, recargar y abrir en el navegador.
+- Los vídeos empiezan pausados y silenciados, con controles nativos. Se guarda una copia propia y la posición de reproducción; ocultar la línea pausa la reproducción.
 - **Nueva nota** permite editar texto y añadir tareas con casillas. Todo se guarda localmente.
 - **Return** inserta una tarea debajo y mueve el texto posterior al cursor a
   ella. En una tarea vacía, la elimina y termina la edición. **Escape** termina
@@ -34,7 +36,12 @@ Descolgar conserva el archivo original; **Mover a la Papelera** lo elimina expl�
 
 No observa carpetas de capturas, cambia los ajustes de captura ni registra
 atajos globales. Las imágenes añadidas permanecen hasta que las quitas.
-El vídeo todavía no está disponible.
+Las páginas se cargan al mostrar la línea y usan la sesión WebKit de Pinloom,
+sin compartir la sesión del navegador. Algunos inicios de sesión, ventanas
+emergentes y descargas requieren abrir en el navegador. Los formatos locales
+compatibles dependen de AVFoundation, incluidos MP4, MOV y M4V compatibles.
+Imágenes, vídeos y notas se guardan localmente. Las tarjetas web conectan con
+los sitios añadidos; Pinloom no requiere cuenta ni envía analítica.
 
 Las imágenes nuevas caben en un área de 306 × 234 puntos, manteniendo su
 proporción. Las notas empiezan en 320 × 280, con un mínimo de 240 × 220.
@@ -42,6 +49,8 @@ El tamaño máximo depende del espacio disponible de la pantalla: 85% del
 ancho menos 40 puntos y la altura menos 100. Las pantallas pequeñas ajustan
 la presentación sin sobrescribir los tamaños guardados. Texto y tareas
 comparten una sola área de desplazamiento.
+Las tarjetas de vídeo empiezan en 384 × 260 y las páginas web en 480 × 360,
+con los mismos límites de pantalla.
 
 ## Compilar
 

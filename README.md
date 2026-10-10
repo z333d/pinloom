@@ -2,7 +2,7 @@
 
 # Pinloom
 
-Keep images and notes in view while you work. Pinloom is a native macOS menu bar
+Keep images, videos, webpages and notes in view while you work. Pinloom is a native macOS menu bar
 app with a hanging line that floats above your apps, including full-screen Spaces.
 
 [简体中文](docs/i18n/README.zh-Hans.md) · [Español](docs/i18n/README.es.md)
@@ -18,8 +18,10 @@ Click the pin icon in the menu bar to show or hide the line. Right-click it to
 open the menu. The line stays open until you hide it; moving the pointer into
 the menu bar does not open it.
 
-- **Paste image** adds an image from your clipboard.
-- **Add images…** opens a file picker. You can also drop files on the line or menu bar icon.
+- **Paste** adds a clipboard image, copied video file, or webpage address.
+- **Add files…** opens a picker for images and local videos. You can also drop files or links on the line or menu bar icon.
+- **Add webpage…** opens an address field. Web cards support scrolling, text selection, links, back/forward, reload and opening in your browser.
+- Videos start paused and muted, with native playback and seek controls. Import creates a private copy so moving the original does not break the card. Playback position is saved; hiding the line pauses playback.
 - **New note** adds editable text and checkable to-dos. Content is saved locally.
 - Press **Return** in a to-do to insert the next one below it; text after the
   cursor moves to the new item. Return on an empty item removes it and ends
@@ -38,20 +40,27 @@ horizontally when they do not fit.
 
 Pinloom does not watch screenshot folders, change capture settings, or register
 global hotkeys. Keep using your preferred screenshot tool and add the images
-you need. Standard text editing commands work inside notes. Video is not yet supported.
+you need. Standard text editing commands work inside notes.
+
+Webpages load only after you show the line. They use Pinloom's own WebKit session,
+not your browser's signed-in session. Some sign-in flows, popups and downloads
+work best in your browser; use the card's open button. Local video format and
+codec support follows AVFoundation (including supported MP4, MOV and M4V files).
 
 ## Size and compatibility
 
 macOS 14 or later, Apple silicon and Intel. Interface languages: English,
-Spanish and Simplified Chinese. Swift, AppKit and SwiftUI; no account, network
-requests or analytics in the app.
+Spanish and Simplified Chinese. Swift, AppKit, SwiftUI, AVKit and WebKit. Images,
+videos and notes stay local. Web cards connect to the sites you add; Pinloom
+does not require an account or send analytics.
 
 New images preserve their aspect ratio and fit a 306 × 234 point image area,
 plus the frame. Notes start at 320 × 280 points, with a 240 × 220 minimum.
 Both can grow to the current display's usable space (85% of its width minus
 40 points, and its height minus 100 points), instead of fixed zoom caps.
 Previously saved sizes are retained; smaller displays temporarily fit the
-cards without overwriting those preferences. Notes use one scrolling area
+cards without overwriting those preferences. Video cards start at 384 × 260
+and webpages at 480 × 360, with the same display bounds. Notes use one scrolling area
 for text and tasks.
 
 ## Build and install

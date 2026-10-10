@@ -256,7 +256,7 @@ final class WorkflowTests: XCTestCase {
         let menu = NSMenu()
         app.menuNeedsUpdate(menu)
         let titles = menu.items.filter { !$0.isSeparatorItem }.map(\.title)
-        XCTAssertEqual(titles, [L("Show line"), L("Paste image"), L("Add images…"), L("New note"), L("Options"), L("Quit Pinloom")])
+        XCTAssertEqual(titles, [L("Show line"), L("Paste"), L("Add files…"), L("New note"), L("Add webpage…"), L("Options"), L("Quit Pinloom")])
         XCTAssertEqual(menu.items.first { $0.title == L("Options") }?.submenu?.items.map(\.title), [L("Sounds"), L("Open at login")])
         let id = line.addNote()
         line.removeNote(id)
@@ -549,7 +549,7 @@ final class WorkflowTests: XCTestCase {
             (view as? LineImportView).map { [$0] } ?? view.subviews.flatMap { targets(in: $0) }
         }
         let imports = targets(in: host)
-        XCTAssertEqual(imports.count, 4, "Paste, picker, note creation, and the empty drop area must be directly reachable")
+        XCTAssertEqual(imports.count, 5, "Paste, picker, note, webpage, and empty drop area must be directly reachable")
         for target in imports {
             let center = NSPoint(x: target.bounds.midX, y: target.bounds.midY)
             XCTAssertTrue(panel.interactiveView(atWindowPoint: target.convert(center, to: nil)) === target)
