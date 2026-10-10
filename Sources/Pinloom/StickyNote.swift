@@ -10,8 +10,8 @@ struct StickyNote: Codable, Identifiable, Equatable {
     var id = UUID()
     var text = ""
     var tasks: [NoteTask] = []
-    var width: Double = 240
-    var height: Double = 220
+    var width: Double = Double(CardSizing.defaultNoteSize.width)
+    var height: Double = Double(CardSizing.defaultNoteSize.height)
     var x: Double?
     var y: Double?
 
@@ -23,8 +23,7 @@ struct StickyNote: Codable, Identifiable, Equatable {
 
 enum NoteLayout {
     static func size(_ note: StickyNote, available: CGSize) -> CGSize {
-        CGSize(width: max(200, min(CGFloat(note.width), min(480, available.width - 40))),
-               height: max(160, min(CGFloat(note.height), min(600, available.height - 60))))
+        CardSizing.noteSize(CGSize(width: note.width, height: note.height), available: available)
     }
     static func position(_ note: StickyNote, defaultX: CGFloat, size: CGSize, width: CGFloat, height: CGFloat) -> CGPoint {
         let half = size.width / 2 + 18

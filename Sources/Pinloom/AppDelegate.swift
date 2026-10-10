@@ -292,8 +292,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func placeLine(on screen: NSScreen? = nil) {
         guard let screen = screen ?? LinePanel.screenUnderPointer() else { return }
         let available = LinePanel.usableFrame(of: screen)
-        line.availableHeight = available.height
-        line.viewportWidth = available.width
+        if line.availableHeight != available.height { line.availableHeight = available.height }
+        if line.viewportWidth != available.width { line.viewportWidth = available.width }
         panel.placeOnScreen(screen, height: line.panelHeight)
     }
 

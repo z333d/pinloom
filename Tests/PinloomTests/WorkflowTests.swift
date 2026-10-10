@@ -5,6 +5,98 @@ import SwiftUI
 
 final class WorkflowTests: XCTestCase {
     @MainActor
+    func testLargeCardsFitTheScreenWithoutLosingSavedSizesOnSmallerDisplays() throws {
+        let source = try image("readable-default")
+        let original = try Data(contentsOf: source)
+        let line = Line(defaults: defaults)
+        let id = try XCTUnwrap(line.hang(source, quietly: true))
+        XCTAssertEqual(line.items.first?.scale, 2.25)
+        line.resize(id, scale: 100)
+        let requested = try XCTUnwrap(line.items.first?.scale)
+        XCTAssertGreaterThan(requested, 3)
+        let noteID = line.addNote()
+        line.resizeNote(noteID, to: CGSize(width: 700, height: 700))
+        XCTAssertEqual(Line(defaults: defaults).notes.first?.width, 700)
+        let saved = defaults.dictionaryRepresentation()
+        line.viewportWidth = 800; line.availableHeight = 600
+        let rendered = try XCTUnwrap(line.displayItems.first)
+        let card = PeggedView.cardSize(for: rendered.thumb.size, scale: rendered.scale)
+        XCTAssertLessThanOrEqual(card.width, 640.001)
+        XCTAssertLessThanOrEqual(card.height, 500.001)
+        XCTAssertLessThanOrEqual(line.noteSize(try XCTUnwrap(line.notes.first)).height, 500)
+        XCTAssertEqual(line.items.first?.scale, requested)
+        XCTAssertEqual(defaults.dictionaryRepresentation() as NSDictionary, saved as NSDictionary)
+        line.viewportWidth = 1440; line.availableHeight = 900
+        XCTAssertEqual(line.displayItems.first?.scale, requested)
+        XCTAssertEqual(Line(defaults: defaults).items.first?.scale, requested)
+        XCTAssertEqual(try Data(contentsOf: source), original)
+    }
+
+    @MainActor
+    func testTaskOnlyNotesKeepTasksNearTheHeaderAndLongContentSharesOneScrollArea() throws {
+        let line = Line(defaults: defaults)
+        let id = line.addNote()
+        let task = try XCTUnwrap(line.addTask(to: id))
+        line.setTask(task, in: id, text: "Review screenshots")
+        let body = StickyNoteBody()
+        body.configure(note: try XCTUnwrap(line.notes.first), line: line)
+        body.setFrameSize(NSSize(width: 320, height: 580))
+        body.layoutSubtreeIfNeeded()
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let editor = try XCTUnwrap(descendants(body).first { $0 is NoteTextView } as? NoteTextView)
+        let checkbox = try XCTUnwrap(descendants(body).compactMap { $0 as? NSButton }.first { $0.accessibilityLabel() == "Review screenshots" })
+        XCTAssertLessThan(checkbox.convert(checkbox.bounds, to: body).minY, 110)
+        XCTAssertEqual(descendants(body).filter { $0 is NSScrollView }.count, 1)
+        line.setNoteText(id, text: Array(repeating: "A long note with editable content", count: 30).joined(separator: "\n"))
+        body.configure(note: try XCTUnwrap(line.notes.first), line: line)
+        body.layoutSubtreeIfNeeded()
+        let textBottom = editor.convert(editor.bounds, to: body).maxY
+        XCTAssertGreaterThan(textBottom, body.bounds.height)
+        XCTAssertGreaterThan(checkbox.convert(checkbox.bounds, to: body).minY, textBottom)
+        XCTAssertGreaterThan(editor.enclosingScrollView?.documentView?.frame.height ?? 0,
+                             editor.enclosingScrollView?.contentSize.height ?? 0)
+    }
+
+    @MainActor
+    func testNotePresentationAtMinimumDefaultAndLargeSizes() async throws {
+        let line = Line(defaults: defaults)
+        let sizes = [CGSize(width: 240, height: 220), CGSize(width: 320, height: 280), CGSize(width: 600, height: 480)]
+        var notes: [StickyNote] = []
+        for (index, size) in sizes.enumerated() {
+            let id = line.addNote()
+            if index > 0 { line.setNoteText(id, text: "今天要完成的事情\nKeep the reference close.") }
+            for (text, complete) in [("Review screenshots", false), ("Update the design", true)] {
+                let task = try XCTUnwrap(line.addTask(to: id))
+                line.setTask(task, in: id, text: text, completed: complete)
+            }
+            line.resizeNote(id, to: size)
+            notes.append(try XCTUnwrap(line.notes.last))
+        }
+        let preview = HStack(alignment: .top, spacing: 24) {
+            ForEach(notes) { note in
+                StickyNoteCard(note: note, line: line, anchor: .zero)
+            }
+        }.padding(24).background(Color(nsColor: .windowBackgroundColor))
+        let host = NSHostingView(rootView: preview)
+        host.setFrameSize(NSSize(width: 1340, height: 560))
+        host.layoutSubtreeIfNeeded()
+        try await Task.sleep(for: .milliseconds(100))
+        host.layoutSubtreeIfNeeded()
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        for body in descendants(host).compactMap({ $0 as? StickyNoteBody }) {
+            let copy = try XCTUnwrap(descendants(body).compactMap { $0 as? NSButton }.first { $0.toolTip == L("Copy note") })
+            XCTAssertTrue(body.bounds.contains(copy.frame))
+            let scroll = try XCTUnwrap(descendants(body).first { $0 is NSScrollView } as? NSScrollView)
+            XCTAssertTrue(body.bounds.contains(scroll.frame))
+        }
+        if let path = ProcessInfo.processInfo.environment["PINLOOM_NOTE_GRID_PREVIEW"],
+           let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: URL(fileURLWithPath: path))
+        }
+    }
+
+    @MainActor
     func testBrandMigrationCopiesImagesNotesReferencesAndLayoutWithoutChangingOriginals() throws {
         let legacyName = suite + ".legacy"
         let legacy = UserDefaults(suiteName: legacyName)!
@@ -280,10 +372,10 @@ final class WorkflowTests: XCTestCase {
             let id = line.addNote()
             line.setNoteText(id, text: "Important reminder")
             line.resizeNote(id, to: CGSize(width: -200, height: 4000))
-            XCTAssertEqual(line.notes.first?.width, 200)
-            XCTAssertEqual(line.notes.first?.height, 600)
+            XCTAssertEqual(line.notes.first?.width, 240)
+            XCTAssertEqual(line.notes.first?.height, 800)
             line.resizeNote(id, to: CGSize(width: CGFloat.infinity, height: CGFloat.nan))
-            XCTAssertEqual(line.notes.first?.width, 200)
+            XCTAssertEqual(line.notes.first?.width, 240)
             line.removeNote(id)
             let restored = Line(defaults: defaults)
             XCTAssertTrue(restored.notes.isEmpty)
@@ -339,6 +431,8 @@ final class WorkflowTests: XCTestCase {
         checkbox.performClick(nil)
         XCTAssertEqual(line.notes.first?.tasks.first?.completed, true)
         XCTAssertEqual(Line(defaults: defaults).notes.first?.tasks.first?.completed, true)
+        try await Task.sleep(for: .milliseconds(80))
+        host.layoutSubtreeIfNeeded()
         if let path = ProcessInfo.processInfo.environment["PINLOOM_NOTE_PREVIEW"],
            let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) {
             host.cacheDisplay(in: host.bounds, to: bitmap)

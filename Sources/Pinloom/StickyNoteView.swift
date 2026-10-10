@@ -1,7 +1,16 @@
 import SwiftUI
 
+// Hallmark · component: paper note · native system type · warm neutral palette
+// Pre-emit critique: P4 H4 E4 S4 R5 V4
 private enum NoteStyle {
-    static let paper = Color(red: 0.98, green: 0.94, blue: 0.72)
+    static let paper = NSColor(srgbRed: 0.99, green: 0.975, blue: 0.92, alpha: 1)
+    static let ink = NSColor(srgbRed: 0.22, green: 0.23, blue: 0.21, alpha: 1)
+    static let muted = NSColor(srgbRed: 0.43, green: 0.44, blue: 0.39, alpha: 1)
+    static let rule = NSColor(srgbRed: 0.84, green: 0.83, blue: 0.76, alpha: 1)
+    static let accent = NSColor(srgbRed: 0.22, green: 0.40, blue: 0.35, alpha: 1)
+    static let bodyFont = NSFont.systemFont(ofSize: 14)
+    static let inset: CGFloat = 18
+    static let radius: CGFloat = 8
 }
 
 struct StickyNoteCard: View {
@@ -19,12 +28,14 @@ struct StickyNoteCard: View {
                 .zIndex(1)
             StickyNoteContent(note: note, line: line)
                 .frame(width: size.width, height: size.height)
-                .background(NoteStyle.paper, in: RoundedRectangle(cornerRadius: 12))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: .black.opacity(0.2), radius: 10, y: 5)
+                .background(Color(nsColor: NoteStyle.paper), in: RoundedRectangle(cornerRadius: NoteStyle.radius))
+                .clipShape(RoundedRectangle(cornerRadius: NoteStyle.radius))
+                .overlay(RoundedRectangle(cornerRadius: NoteStyle.radius)
+                    .strokeBorder(Color(nsColor: NoteStyle.rule).opacity(0.6), lineWidth: 0.5).allowsHitTesting(false))
+                .shadow(color: .black.opacity(0.14), radius: 8, y: 4)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 10, weight: .semibold)).foregroundStyle(.black.opacity(0.55))
+                        .font(.system(size: 10, weight: .medium)).foregroundStyle(Color(nsColor: NoteStyle.muted))
                         .frame(width: 26, height: 26).allowsHitTesting(false)
                         .overlay(NoteResizeArea(note: note, line: line).frame(width: 26, height: 26))
                 }
@@ -124,7 +135,7 @@ final class NoteTextView: NSTextView {
         super.draw(dirtyRect)
         if string.isEmpty {
             (L("Write a note…") as NSString).draw(at: CGPoint(x: textContainerInset.width, y: textContainerInset.height),
-                withAttributes: [.font: font ?? NSFont.systemFont(ofSize: 13), .foregroundColor: NSColor.secondaryLabelColor])
+                withAttributes: [.font: font ?? NoteStyle.bodyFont, .foregroundColor: NoteStyle.muted])
         }
     }
 }
@@ -137,7 +148,7 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
     private let addButton = NSButton(title: L("Add to-do"), target: nil, action: nil)
     private let memo = NoteTextView()
     private let memoScroll = NSScrollView()
-    private let taskScroll = NSScrollView()
+    private let document = FlippedNoteView()
     private let taskDocument = FlippedNoteView()
     private var rows: [UUID: NoteTaskRow] = [:]
     private var order: [UUID] = []
@@ -153,31 +164,46 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
     override init(frame: NSRect) {
         super.init(frame: frame)
         appearance = NSAppearance(named: .aqua)
-        title.font = .systemFont(ofSize: 11, weight: .semibold)
+        title.font = .systemFont(ofSize: 11, weight: .medium)
+        title.textColor = NoteStyle.muted
         removeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: L("Remove note"))
-        removeButton.isBordered = false
+        removeButton.bezelStyle = .inline
+        removeButton.showsBorderOnlyWhileMouseInside = true
+        removeButton.contentTintColor = NoteStyle.muted
         removeButton.target = self; removeButton.action = #selector(removeNote)
         removeButton.toolTip = L("Remove note")
-        addButton.bezelStyle = .rounded; addButton.controlSize = .small
+        addButton.bezelStyle = .inline; addButton.controlSize = .regular
+        addButton.showsBorderOnlyWhileMouseInside = true
+        addButton.font = .systemFont(ofSize: 12, weight: .medium)
+        addButton.image = NSImage(systemSymbolName: "plus", accessibilityDescription: nil)
+        addButton.imagePosition = .imageLeading
+        addButton.contentTintColor = NoteStyle.accent
         addButton.target = self; addButton.action = #selector(addTask)
         memo.isRichText = false; memo.isEditable = true; memo.isSelectable = true
         memo.drawsBackground = false; memo.allowsUndo = true
-        memo.font = .systemFont(ofSize: 13); memo.textColor = .labelColor
-        memo.textContainerInset = NSSize(width: 3, height: 4)
+        memo.font = NoteStyle.bodyFont; memo.textColor = NoteStyle.ink
+        memo.insertionPointColor = NoteStyle.accent
+        memo.textContainerInset = NSSize(width: 0, height: 4)
+        memo.textContainer?.lineFragmentPadding = 0
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 4
+        memo.defaultParagraphStyle = paragraph
         memo.isVerticallyResizable = true; memo.isHorizontallyResizable = false
         memo.autoresizingMask = [.width]; memo.textContainer?.widthTracksTextView = true
         memo.delegate = self
         memo.setAccessibilityLabel(L("Note text"))
         memo.onEscape = { [weak self] in self?.onFinish() }
-        memoScroll.documentView = memo; memoScroll.hasVerticalScroller = true
+        memoScroll.documentView = document; memoScroll.hasVerticalScroller = true
         memoScroll.autohidesScrollers = true; memoScroll.drawsBackground = false
-        taskScroll.documentView = taskDocument; taskScroll.hasVerticalScroller = true
-        taskScroll.autohidesScrollers = true; taskScroll.drawsBackground = false
+        document.addSubview(memo)
+        document.addSubview(taskDocument)
         copyButton.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: L("Copy note"))
-        copyButton.isBordered = false
+        copyButton.bezelStyle = .inline
+        copyButton.showsBorderOnlyWhileMouseInside = true
+        copyButton.contentTintColor = NoteStyle.muted
         copyButton.target = self; copyButton.action = #selector(copyNote)
         copyButton.toolTip = L("Copy note")
-        [title, copyButton, removeButton, memoScroll, taskScroll, addButton].forEach(addSubview)
+        [title, copyButton, removeButton, memoScroll, addButton].forEach(addSubview)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
@@ -239,25 +265,40 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
     }
     override func layout() {
         super.layout()
-        let width = bounds.width
-        title.frame = NSRect(x: 12, y: 9, width: width - 80, height: 18)
-        copyButton.frame = NSRect(x: width - 64, y: 6, width: 24, height: 24)
-        removeButton.frame = NSRect(x: width - 36, y: 6, width: 24, height: 24)
-        let memoHeight = order.isEmpty ? max(40, bounds.height - 72) : max(40, min(120, bounds.height * 0.4))
-        memoScroll.frame = NSRect(x: 12, y: 34, width: width - 24, height: memoHeight)
-        memo.setFrameSize(NSSize(width: memoScroll.contentSize.width, height: max(memoHeight, memo.frame.height)))
-        let tasksTop = 40 + memoHeight
-        taskScroll.frame = NSRect(x: 12, y: tasksTop, width: width - 24, height: max(20, bounds.height - tasksTop - 34))
-        taskScroll.isHidden = order.isEmpty
-        taskDocument.frame = NSRect(x: 0, y: 0, width: taskScroll.contentSize.width, height: CGFloat(order.count) * 28)
+        let width = bounds.width, inset = NoteStyle.inset
+        title.frame = NSRect(x: inset, y: 14, width: max(0, width - 100), height: 18)
+        copyButton.frame = NSRect(x: width - 76, y: 9, width: 28, height: 28)
+        removeButton.frame = NSRect(x: width - 44, y: 9, width: 28, height: 28)
+        memoScroll.frame = NSRect(x: inset, y: 48, width: max(0, width - inset * 2), height: max(0, bounds.height - 96))
+        let contentWidth = memoScroll.contentSize.width
+        memo.setFrameSize(NSSize(width: contentWidth, height: max(40, memo.frame.height)))
+        memo.layoutManager?.ensureLayout(for: memo.textContainer!)
+        let textHeight = ceil(memo.layoutManager?.usedRect(for: memo.textContainer!).height ?? 0) + 12
+        let memoHeight = order.isEmpty ? max(memoScroll.contentSize.height, textHeight) : max(32, textHeight)
+        memo.frame = NSRect(x: 0, y: 0, width: contentWidth, height: memoHeight)
+        let tasksTop = memoHeight + 12
+        taskDocument.isHidden = order.isEmpty
+        taskDocument.frame = NSRect(x: 0, y: tasksTop, width: contentWidth, height: CGFloat(order.count) * 34)
+        document.frame = NSRect(x: 0, y: 0, width: contentWidth,
+                                height: max(memoScroll.contentSize.height, order.isEmpty ? memoHeight : taskDocument.frame.maxY))
         for (index, id) in order.enumerated() {
-            rows[id]?.frame = NSRect(x: 0, y: CGFloat(index) * 28, width: taskDocument.bounds.width, height: 26)
+            rows[id]?.frame = NSRect(x: 0, y: CGFloat(index) * 34, width: contentWidth, height: 32)
         }
-        addButton.frame = NSRect(x: 12, y: bounds.height - 30, width: 108, height: 24)
+        addButton.frame = NSRect(x: inset - 4, y: bounds.height - 39, width: 112, height: 28)
+        needsDisplay = true
+    }
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        NoteStyle.rule.withAlphaComponent(0.6).setStroke()
+        let separator = NSBezierPath()
+        separator.move(to: NSPoint(x: NoteStyle.inset, y: bounds.height - 46))
+        separator.line(to: NSPoint(x: bounds.width - NoteStyle.inset, y: bounds.height - 46))
+        separator.lineWidth = 0.5
+        separator.stroke()
     }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     func textDidBeginEditing(_ notification: Notification) { onBegin() }
-    func textDidChange(_ notification: Notification) { onText(memo.string) }
+    func textDidChange(_ notification: Notification) { onText(memo.string); needsLayout = true }
     @objc private func removeNote() { onRemove() }
     @objc private func copyNote() { onCopy() }
     @objc private func addTask() { pendingTask = onAddTask() }
@@ -279,11 +320,17 @@ private final class NoteTaskRow: NSView, NSTextFieldDelegate {
     override init(frame: NSRect) {
         super.init(frame: frame)
         field.isBordered = false; field.drawsBackground = false; field.focusRingType = .none
-        field.font = .systemFont(ofSize: 13); field.placeholderString = L("To-do")
+        field.font = NoteStyle.bodyFont; field.placeholderString = L("To-do")
+        field.lineBreakMode = .byTruncatingTail
+        field.usesSingleLineMode = true
         field.delegate = self
+        checkbox.contentTintColor = NoteStyle.accent
         checkbox.target = self; checkbox.action = #selector(check)
-        removeButton.image = NSImage(systemSymbolName: "minus.circle", accessibilityDescription: L("Remove to-do"))
-        removeButton.isBordered = false; removeButton.target = self; removeButton.action = #selector(removeTask)
+        removeButton.image = NSImage(systemSymbolName: "xmark", accessibilityDescription: L("Remove to-do"))
+        removeButton.contentTintColor = NoteStyle.muted
+        removeButton.bezelStyle = .inline; removeButton.target = self; removeButton.action = #selector(removeTask)
+        removeButton.showsBorderOnlyWhileMouseInside = true
+        removeButton.toolTip = L("Remove to-do")
         [checkbox, field, removeButton].forEach(addSubview)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -294,13 +341,19 @@ private final class NoteTaskRow: NSView, NSTextFieldDelegate {
         if field.stringValue != task.text { field.stringValue = task.text }
         checkbox.state = task.completed ? .on : .off
         checkbox.setAccessibilityLabel(task.text.isEmpty ? L("To-do") : task.text)
-        field.textColor = task.completed ? .secondaryLabelColor : .labelColor
+        field.textColor = task.completed ? NoteStyle.muted : NoteStyle.ink
+        if field.currentEditor() == nil {
+            field.attributedStringValue = NSAttributedString(string: task.text, attributes: [
+                .font: NoteStyle.bodyFont, .foregroundColor: task.completed ? NoteStyle.muted : NoteStyle.ink,
+                .strikethroughStyle: task.completed ? NSUnderlineStyle.single.rawValue : 0
+            ])
+        }
     }
     override func layout() {
         super.layout()
-        checkbox.frame = NSRect(x: 0, y: 2, width: 22, height: 22)
-        field.frame = NSRect(x: 25, y: 3, width: max(30, bounds.width - 49), height: 22)
-        removeButton.frame = NSRect(x: bounds.width - 22, y: 2, width: 22, height: 22)
+        checkbox.frame = NSRect(x: 0, y: 5, width: 22, height: 22)
+        field.frame = NSRect(x: 28, y: 6, width: max(30, bounds.width - 56), height: 22)
+        removeButton.frame = NSRect(x: bounds.width - 24, y: 4, width: 24, height: 24)
     }
     func controlTextDidBeginEditing(_ notification: Notification) { onBegin() }
     func controlTextDidChange(_ notification: Notification) { onText(field.stringValue) }

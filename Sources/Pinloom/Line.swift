@@ -12,7 +12,7 @@ struct Pegged: Identifiable, Equatable {
     /// Every photo hangs a little crooked, like on a real line.
     let tilt = Double.random(in: -2.5...2.5)
     var falling = false
-    var scale: CGFloat = 1
+    var scale: CGFloat = CardSizing.defaultImageScale
     var hangingPosition: CGPoint?
 
     static func == (a: Pegged, b: Pegged) -> Bool {
@@ -66,9 +66,17 @@ final class Line: ObservableObject {
     /// uses them to only catch clicks over photos and let the rest through.
     var hitRects: [UUID: CGRect] = [:]
     var clipRects: [UUID: CGRect] = [:]
-    var availableHeight: CGFloat = 900
-    var viewportWidth: CGFloat = 1440
+    @Published var availableHeight: CGFloat = 900
+    @Published var viewportWidth: CGFloat = 1440
 
+    var availableSize: CGSize { CGSize(width: viewportWidth, height: availableHeight) }
+    var displayItems: [Pegged] {
+        items.map { item in
+            var rendered = item
+            rendered.scale = CardSizing.imageScale(item.scale, image: item.thumb.size, available: availableSize)
+            return rendered
+        }
+    }
 
     var soundOn: Bool {
         get { !defaults.bool(forKey: "soundOff") }
@@ -86,8 +94,9 @@ final class Line: ObservableObject {
     }
     var panelHeight: CGFloat {
         let width = max(viewportWidth, contentWidth + 40)
-        let bottom = items.enumerated().map { index, item in
-            HangingLayout.position(for: item, index: index, items: items, width: width, height: availableHeight, trailingWidth: notesWidth).y
+        let rendered = displayItems
+        let bottom = rendered.enumerated().map { index, item in
+            HangingLayout.position(for: item, index: index, items: rendered, width: width, height: availableHeight, trailingWidth: notesWidth).y
                 + PeggedView.cardSize(for: item.thumb.size, scale: item.scale).height + 40
         }.max() ?? 0
         let noteBottom = notes.enumerated().map { index, note in
@@ -95,11 +104,11 @@ final class Line: ObservableObject {
         }.max() ?? 0
         return min(availableHeight, max(Layout.panelHeight, max(bottom, noteBottom)))
     }
-    var contentWidth: CGFloat { Layout.rowWidth(items: items) + notesWidth }
+    var contentWidth: CGFloat { Layout.rowWidth(items: displayItems) + notesWidth }
 
     func notePosition(_ note: StickyNote, index: Int, width: CGFloat) -> CGPoint {
         let start = (width - contentWidth) / 2
-        let before = Layout.rowWidth(items: items) + (items.isEmpty ? 0 : 24)
+        let before = Layout.rowWidth(items: displayItems) + (items.isEmpty ? 0 : 24)
             + notes.prefix(index).reduce(0) { $0 + noteSize($1).width + 44 }
         let x = start + before + (noteSize(note).width + 20) / 2
         return NoteLayout.position(note, defaultX: x, size: noteSize(note), width: width, height: availableHeight)
@@ -110,7 +119,7 @@ final class Line: ObservableObject {
     private var modificationDates: [String: Date] = [:]
     private var savedScales: [String: Double]
     private var savedPositions: [String: [Double]]
-    private var highResolutionIDs = Set<UUID>()
+    private var thumbnailLimits: [UUID: Int] = [:]
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -120,8 +129,8 @@ final class Line: ObservableObject {
             var seen = Set<UUID>()
             notes = restored.filter { seen.insert($0.id).inserted }.map { note in
                 var note = note
-                note.width = max(200, min(480, note.width))
-                note.height = max(160, min(600, note.height))
+                note.width = note.width.isFinite ? max(200, note.width) : Double(CardSizing.defaultNoteSize.width)
+                note.height = note.height.isFinite ? max(160, note.height) : Double(CardSizing.defaultNoteSize.height)
                 return note
             }
         }
@@ -139,15 +148,20 @@ final class Line: ObservableObject {
         guard !items.contains(where: { $0.url.imageIdentityPath == url.imageIdentityPath && !$0.falling }),
               let thumb = makeThumbnail(url) else { return nil }
         var item = Pegged(url: url, thumb: thumb)
-        if let scale = savedScales[url.imageIdentityPath], scale.isFinite { item.scale = max(0.65, min(3, scale)) }
+        if let scale = savedScales[url.imageIdentityPath], scale.isFinite {
+            item.scale = max(CardSizing.minimumImageScale, scale)
+        } else {
+            item.scale = CardSizing.imageScale(CardSizing.defaultImageScale, image: thumb.size, available: availableSize)
+        }
         if let position = savedPositions[url.imageIdentityPath], position.count == 2,
            position.allSatisfy(\.isFinite) {
             item.hangingPosition = CGPoint(x: position[0], y: position[1])
         }
-        if item.scale > 1, let thumb = makeThumbnail(url, maxPixels: 960) {
+        let pixels = CardSizing.thumbnailPixels(scale: item.scale)
+        if pixels > 480, let thumb = makeThumbnail(url, maxPixels: pixels) {
             item.thumb = thumb
-            highResolutionIDs.insert(item.id)
         }
+        thumbnailLimits[item.id] = pixels
         items.append(item)
         modificationDates[url.path] = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
         save()
@@ -163,7 +177,7 @@ final class Line: ObservableObject {
         guard let i = items.firstIndex(where: { $0.id == id }), !items[i].falling else { return }
         onFall?(items[i])
         items[i].falling = true
-        highResolutionIDs.remove(id)
+        thumbnailLimits[id] = nil
         hitRects[id] = nil
         save()
         if !quietly { play("Pop", volume: 0.25) }
@@ -230,10 +244,11 @@ final class Line: ObservableObject {
     /// Resizing changes only this presentation, never the source image or other cards.
     func resize(_ id: UUID, scale: CGFloat) {
         guard scale.isFinite, let index = items.firstIndex(where: { $0.id == id && !$0.falling }) else { return }
-        items[index].scale = max(0.65, min(3, scale))
-        if !highResolutionIDs.contains(id), let thumb = makeThumbnail(items[index].url, maxPixels: 960) {
+        items[index].scale = CardSizing.imageScale(scale, image: items[index].thumb.size, available: availableSize)
+        let pixels = CardSizing.thumbnailPixels(scale: items[index].scale)
+        if pixels > (thumbnailLimits[id] ?? 480), let thumb = makeThumbnail(items[index].url, maxPixels: pixels) {
             items[index].thumb = thumb
-            highResolutionIDs.insert(id)
+            thumbnailLimits[id] = pixels
         }
         save()
         onLayoutChange()
@@ -245,8 +260,9 @@ final class Line: ObservableObject {
               let index = items.firstIndex(where: { $0.id == id && !$0.falling }) else { return }
         items[index].hangingPosition = position
         let width = max(viewportWidth, contentWidth + 40)
-        items[index].hangingPosition = HangingLayout.position(for: items[index], index: index,
-                                                             items: items, width: width, height: availableHeight, trailingWidth: notesWidth)
+        let rendered = displayItems
+        items[index].hangingPosition = HangingLayout.position(for: rendered[index], index: index,
+                                                             items: rendered, width: width, height: availableHeight, trailingWidth: notesWidth)
         save()
         onLayoutChange()
     }
@@ -314,8 +330,9 @@ final class Line: ObservableObject {
     func resizeNote(_ id: UUID, to size: CGSize) {
         guard size.width.isFinite, size.height.isFinite,
               let index = notes.firstIndex(where: { $0.id == id }) else { return }
-        notes[index].width = Double(max(200, min(480, size.width)))
-        notes[index].height = Double(max(160, min(600, size.height)))
+        let bounded = CardSizing.noteSize(size, available: availableSize)
+        notes[index].width = Double(bounded.width)
+        notes[index].height = Double(bounded.height)
         saveNotes(); onLayoutChange()
     }
     func removeNote(_ id: UUID) {
@@ -400,7 +417,8 @@ final class Line: ObservableObject {
     /// After editing, the photo on the line shows the new version.
     func reloadThumbnail(for url: URL) {
         guard let i = items.firstIndex(where: { $0.url == url && !$0.falling }),
-              let thumb = makeThumbnail(url, maxPixels: items[i].scale > 1 ? 960 : 480) else { return }
+              let thumb = makeThumbnail(url, maxPixels: max(thumbnailLimits[items[i].id] ?? 480,
+                                                           CardSizing.thumbnailPixels(scale: items[i].scale))) else { return }
         items[i].thumb = thumb
         modificationDates[url.path] = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }

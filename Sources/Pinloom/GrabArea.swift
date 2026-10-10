@@ -58,7 +58,7 @@ struct GrabArea: NSViewRepresentable {
             menu.addItem(.separator())
             menu.addItem(ClosureMenuItem(L("Larger on line")) { line.resize(id, scale: item.scale * 1.25) })
             menu.addItem(ClosureMenuItem(L("Smaller on line")) { line.resize(id, scale: item.scale / 1.25) })
-            menu.addItem(ClosureMenuItem(L("Reset image size")) { line.resize(id, scale: 1) })
+            menu.addItem(ClosureMenuItem(L("Reset image size")) { line.resize(id, scale: CardSizing.defaultImageScale) })
             menu.addItem(ClosureMenuItem(L("Reset image position")) { line.resetPosition(id) })
             menu.addItem(.separator())
             menu.addItem(ClosureMenuItem(L("Take down")) { line.discard(id) })

@@ -48,12 +48,13 @@ struct LineView: View {
         GeometryReader { geo in
             let width = geo.size.width
             let rowWidth = max(width, line.contentWidth + 40)
+            let items = line.displayItems
             ZStack(alignment: .topLeading) {
                 ScrollView(.horizontal) {
                     ZStack(alignment: .topLeading) {
                         Rope(width: rowWidth)
-                        ForEach(Array(line.items.enumerated()), id: \.element.id) { index, item in
-                            let anchor = HangingLayout.position(for: item, index: index, items: line.items,
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            let anchor = HangingLayout.position(for: item, index: index, items: items,
                                                                 width: rowWidth, height: line.availableHeight, trailingWidth: line.notesWidth)
                             let ropeY = Layout.ropeY(x: anchor.x, width: rowWidth)
                             Path { path in

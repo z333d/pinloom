@@ -33,6 +33,13 @@ No observa carpetas de capturas, cambia los ajustes de captura ni registra
 atajos globales. Las imágenes añadidas permanecen hasta que las quitas.
 El vídeo todavía no está disponible.
 
+Las imágenes nuevas caben en un área de 306 × 234 puntos, manteniendo su
+proporción. Las notas empiezan en 320 × 280, con un mínimo de 240 × 220.
+El tamaño máximo depende del espacio disponible de la pantalla: 85% del
+ancho menos 40 puntos y la altura menos 100. Las pantallas pequeñas ajustan
+la presentación sin sobrescribir los tamaños guardados. Texto y tareas
+comparten una sola área de desplazamiento.
+
 ## Compilar
 
 ```sh

@@ -43,9 +43,13 @@ macOS 14 or later, Apple silicon and Intel. Interface languages: English,
 Spanish and Simplified Chinese. Swift, AppKit and SwiftUI; no account, network
 requests or analytics in the app.
 
-Images preserve their aspect ratio, fitting a default 136 × 104 point image
-area at 0.65–3 times that size, plus the frame. Notes start at 240 × 220 points
-and resize from 200–480 wide and 160–600 high, constrained by display space.
+New images preserve their aspect ratio and fit a 306 × 234 point image area,
+plus the frame. Notes start at 320 × 280 points, with a 240 × 220 minimum.
+Both can grow to the current display's usable space (85% of its width minus
+40 points, and its height minus 100 points), instead of fixed zoom caps.
+Previously saved sizes are retained; smaller displays temporarily fit the
+cards without overwriting those preferences. Notes use one scrolling area
+for text and tasks.
 
 ## Build and install
 
