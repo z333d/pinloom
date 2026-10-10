@@ -160,6 +160,7 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
     private var onBegin: () -> Void = {}
     private var onFinish: () -> Void = {}
     private var pendingTask: UUID?
+    private var pendingFocus: UUID?
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -223,7 +224,10 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
         }
         onAddTask = { line.addTask(to: note.id) }
         onBegin = { line.editingNoteID = note.id }
-        onFinish = { line.editingNoteID = nil; line.onFinishNoteEditing() }
+        onFinish = { [weak self] in
+            self?.pendingTask = nil; self?.pendingFocus = nil
+            line.editingNoteID = nil; line.onFinishNoteEditing()
+        }
         if memo.string != note.text { memo.string = note.text }
         memo.needsDisplay = true
         let taskIDs = note.tasks.map(\.id)
@@ -236,6 +240,23 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
                           onText: { line.setTask(task.id, in: note.id, text: $0) },
                           onCheck: { line.setTask(task.id, in: note.id, completed: $0) },
                           onRemove: { line.removeTask(task.id, from: note.id) },
+                          onReturn: { [weak self] text, selection in
+                              guard let self else { return nil }
+                              switch line.continueTask(task.id, in: note.id, text: text, selection: selection) {
+                              case .inserted(let id, let leadingText):
+                                  self.onBegin()
+                                  self.pendingTask = id
+                                  if let current = line.notes.first(where: { $0.id == note.id }) {
+                                      self.configure(note: current, line: line)
+                                  }
+                                  return leadingText
+                              case .finished:
+                                  self.window?.makeFirstResponder(nil)
+                                  self.onFinish()
+                                  return nil
+                              case .ignored: return nil
+                              }
+                          },
                           onBegin: onBegin, onFinish: onFinish)
         }
         needsLayout = true
@@ -253,13 +274,18 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
         }
         if let pendingTask, let row = rows[pendingTask] {
             self.pendingTask = nil
-            DispatchQueue.main.async { [weak self, weak row] in
-                guard let self, let row else { return }
+            pendingFocus = pendingTask
+            DispatchQueue.main.async { [weak self, weak row, weak line] in
+                guard let self, let row, let line, self.pendingFocus == pendingTask,
+                      self.rows[pendingTask] === row,
+                      line.editingNoteID == note.id,
+                      let window = self.window, window.isVisible else { return }
+                self.pendingFocus = nil
                 self.layoutSubtreeIfNeeded()
+                window.makeKeyAndOrderFront(nil)
+                window.makeFirstResponder(row.field)
+                (row.field.currentEditor() as? NSTextView)?.setSelectedRange(NSRange(location: 0, length: 0))
                 row.scrollToVisible(row.bounds)
-                self.window?.makeKeyAndOrderFront(nil)
-                self.window?.makeFirstResponder(row.field)
-                self.onBegin()
             }
         }
     }
@@ -301,7 +327,7 @@ final class StickyNoteBody: NSView, NSTextViewDelegate {
     func textDidChange(_ notification: Notification) { onText(memo.string); needsLayout = true }
     @objc private func removeNote() { onRemove() }
     @objc private func copyNote() { onCopy() }
-    @objc private func addTask() { pendingTask = onAddTask() }
+    @objc private func addTask() { onBegin(); pendingTask = onAddTask() }
 }
 
 private final class FlippedNoteView: NSView { override var isFlipped: Bool { true } }
@@ -316,6 +342,7 @@ private final class NoteTaskRow: NSView, NSTextFieldDelegate {
     private var onRemove: () -> Void = {}
     private var onBegin: () -> Void = {}
     private var onFinish: () -> Void = {}
+    private var onReturn: (String, NSRange) -> String? = { _, _ in nil }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -335,8 +362,10 @@ private final class NoteTaskRow: NSView, NSTextFieldDelegate {
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     func configure(task: NoteTask, onText: @escaping (String) -> Void, onCheck: @escaping (Bool) -> Void,
-                   onRemove: @escaping () -> Void, onBegin: @escaping () -> Void, onFinish: @escaping () -> Void) {
+                   onRemove: @escaping () -> Void, onReturn: @escaping (String, NSRange) -> String?,
+                   onBegin: @escaping () -> Void, onFinish: @escaping () -> Void) {
         self.onText = onText; self.onCheck = onCheck; self.onRemove = onRemove
+        self.onReturn = onReturn
         self.onBegin = onBegin; self.onFinish = onFinish
         if field.stringValue != task.text { field.stringValue = task.text }
         checkbox.state = task.completed ? .on : .off
@@ -358,6 +387,16 @@ private final class NoteTaskRow: NSView, NSTextFieldDelegate {
     func controlTextDidBeginEditing(_ notification: Notification) { onBegin() }
     func controlTextDidChange(_ notification: Notification) { onText(field.stringValue) }
     func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+        // Let the input method use Return to confirm marked text first.
+        guard !textView.hasMarkedText() else { return false }
+        if selector == #selector(NSResponder.insertNewline(_:)) {
+            if let prefix = onReturn(textView.string, textView.selectedRange()) {
+                textView.string = prefix
+                field.stringValue = prefix
+                textView.setSelectedRange(NSRange(location: (prefix as NSString).length, length: 0))
+            }
+            return true
+        }
         if selector == #selector(NSResponder.cancelOperation(_:)) { onFinish(); return true }
         return false
     }

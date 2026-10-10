@@ -21,6 +21,9 @@ the menu bar does not open it.
 - **Paste image** adds an image from your clipboard.
 - **Add images…** opens a file picker. You can also drop files on the line or menu bar icon.
 - **New note** adds editable text and checkable to-dos. Content is saved locally.
+- Press **Return** in a to-do to insert the next one below it; text after the
+  cursor moves to the new item. Return on an empty item removes it and ends
+  editing. **Escape** ends editing without removing the item.
 - Drag a card's **clip** to move that card; it swings as you move it.
 - Drag the **bottom-right corner** to resize a card. Position and size are remembered.
 - Select note text and press **Command+C**, or use **Copy note** to copy the whole note, including tasks.

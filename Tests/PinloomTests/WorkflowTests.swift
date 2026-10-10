@@ -5,6 +5,72 @@ import SwiftUI
 
 final class WorkflowTests: XCTestCase {
     @MainActor
+    func testTaskReturnInsertsBelowAndSplitsUnicodeSelectionWithoutCompletingTheNewTask() throws {
+        let line = Line(defaults: defaults)
+        let note = line.addNote()
+        let first = try XCTUnwrap(line.addTask(to: note))
+        let following = try XCTUnwrap(line.addTask(to: note))
+        line.setTask(first, in: note, text: "Old stored value", completed: true)
+        line.setTask(following, in: note, text: "Keep this next")
+        let liveText = "整理🧠截图，提交方案"
+        let splitPoint = ("整理🧠截图" as NSString).length
+        guard case .inserted(let created, let prefix) = line.continueTask(first, in: note, text: liveText,
+                                                                         selection: NSRange(location: splitPoint, length: 1)) else {
+            return XCTFail("Return should split the live field editor's text")
+        }
+        let tasks = try XCTUnwrap(line.notes.first?.tasks)
+        XCTAssertEqual(prefix, "整理🧠截图")
+        XCTAssertEqual(tasks.map(\.id), [first, created, following])
+        XCTAssertEqual(tasks.map(\.text), ["整理🧠截图", "提交方案", "Keep this next"])
+        XCTAssertEqual(tasks.map(\.completed), [true, false, false])
+        XCTAssertEqual(Line(defaults: defaults).notes.first?.tasks, tasks)
+        guard case .inserted(let next, _) = line.continueTask(created, in: note, text: "提交方案",
+                                                            selection: NSRange(location: 4, length: 0)) else {
+            return XCTFail("Return at the end should create an empty next task")
+        }
+        XCTAssertEqual(line.notes.first?.tasks.map(\.id), [first, created, next, following])
+        XCTAssertEqual(line.notes.first?.tasks[2].text, "")
+    }
+
+    @MainActor
+    func testNativeTaskReturnIgnoresMarkedTextAndEndsEditingOnAnEmptyTask() throws {
+        let line = Line(defaults: defaults)
+        let note = line.addNote()
+        let task = try XCTUnwrap(line.addTask(to: note))
+        line.setTask(task, in: note, text: "First task")
+        var finished = 0
+        line.onFinishNoteEditing = { finished += 1 }
+        let body = StickyNoteBody(frame: NSRect(x: 0, y: 0, width: 320, height: 280))
+        body.configure(note: try XCTUnwrap(line.notes.first), line: line)
+        body.layoutSubtreeIfNeeded()
+        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let field = try XCTUnwrap(descendants(body).compactMap { $0 as? NSTextField }.first { $0.stringValue == "First task" })
+        let editor = NSTextView()
+        editor.setMarkedText("zhong", selectedRange: NSRange(location: 5, length: 0),
+                             replacementRange: NSRange(location: NSNotFound, length: 0))
+        XCTAssertTrue(editor.hasMarkedText())
+        XCTAssertEqual(field.delegate?.control?(field, textView: editor, doCommandBy: #selector(NSResponder.insertNewline(_:))), false)
+        XCTAssertEqual(line.notes.first?.tasks.count, 1)
+        editor.unmarkText()
+        editor.string = "First task"
+        editor.setSelectedRange(NSRange(location: 10, length: 0))
+        XCTAssertEqual(field.delegate?.control?(field, textView: editor, doCommandBy: #selector(NSResponder.insertNewline(_:))), true)
+        XCTAssertEqual(line.notes.first?.tasks.count, 2)
+        XCTAssertEqual(line.editingNoteID, note, "Return must establish editing ownership even before any typing")
+        body.layoutSubtreeIfNeeded()
+        let emptyField = try XCTUnwrap(descendants(body).compactMap { $0 as? NSTextField }.first { $0.placeholderString == L("To-do") && $0.stringValue.isEmpty })
+        editor.string = "  "
+        editor.setSelectedRange(NSRange(location: 2, length: 0))
+        XCTAssertEqual(emptyField.delegate?.control?(emptyField, textView: editor, doCommandBy: #selector(NSResponder.insertNewline(_:))), true)
+        XCTAssertEqual(line.notes.first?.tasks.map(\.id), [task])
+        XCTAssertEqual(Line(defaults: defaults).notes.first?.tasks.map(\.text), ["First task"])
+        XCTAssertNil(line.editingNoteID)
+        XCTAssertEqual(finished, 1)
+        XCTAssertEqual(line.continueTask(task, in: note, text: "First task", selection: NSRange(location: NSNotFound, length: 0)), .ignored)
+        XCTAssertEqual(line.notes.first?.tasks.count, 1)
+    }
+
+    @MainActor
     func testLargeCardsFitTheScreenWithoutLosingSavedSizesOnSmallerDisplays() throws {
         let source = try image("readable-default")
         let original = try Data(contentsOf: source)

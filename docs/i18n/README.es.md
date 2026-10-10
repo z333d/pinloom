@@ -19,6 +19,9 @@ ocultas, incluso sobre otras aplicaciones a pantalla completa.
 - **Pegar imagen** añade una imagen del portapapeles.
 - **Añadir imágenes…** abre el selector. También puedes arrastrar archivos a la línea o al icono.
 - **Nueva nota** permite editar texto y añadir tareas con casillas. Todo se guarda localmente.
+- **Return** inserta una tarea debajo y mueve el texto posterior al cursor a
+  ella. En una tarea vacía, la elimina y termina la edición. **Escape** termina
+  la edición sin eliminarla.
 - Arrastra la pinza de una tarjeta para moverla y su esquina inferior derecha para cambiar el tamaño.
 - Selecciona texto y usa **Command+C**, o **Copiar nota** para copiar la nota completa con sus tareas.
 - Haz clic en una imagen para copiarla, doble clic para ampliarla o mantén pulsado para usar Marcación.

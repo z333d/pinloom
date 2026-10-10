@@ -6,6 +6,12 @@ struct NoteTask: Codable, Identifiable, Equatable {
     var completed = false
 }
 
+enum TaskContinuation: Equatable {
+    case inserted(id: UUID, prefix: String)
+    case finished
+    case ignored
+}
+
 struct StickyNote: Codable, Identifiable, Equatable {
     var id = UUID()
     var text = ""

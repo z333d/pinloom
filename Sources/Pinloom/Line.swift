@@ -314,6 +314,29 @@ final class Line: ObservableObject {
         if let completed { notes[n].tasks[t].completed = completed }
         saveNotes()
     }
+    func continueTask(_ taskID: UUID, in noteID: UUID, text: String, selection: NSRange) -> TaskContinuation {
+        guard let n = notes.firstIndex(where: { $0.id == noteID }),
+              let t = notes[n].tasks.firstIndex(where: { $0.id == taskID }) else { return .ignored }
+        let contents = text as NSString
+        guard selection.location >= 0, selection.location != NSNotFound, selection.location <= contents.length,
+              selection.length >= 0, selection.length <= contents.length - selection.location else { return .ignored }
+        var tasks = notes[n].tasks
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            tasks.remove(at: t)
+            notes[n].tasks = tasks
+            saveNotes()
+            return .finished
+        }
+        // Native text selections use UTF-16, including for emoji and Chinese.
+        // Enter replaces a selection and moves the remaining suffix below it.
+        let prefix = contents.substring(to: selection.location)
+        let next = NoteTask(text: contents.substring(from: NSMaxRange(selection)))
+        tasks[t].text = prefix
+        tasks.insert(next, at: t + 1)
+        notes[n].tasks = tasks
+        saveNotes()
+        return .inserted(id: next.id, prefix: prefix)
+    }
     func removeTask(_ taskID: UUID, from noteID: UUID) {
         guard let n = notes.firstIndex(where: { $0.id == noteID }) else { return }
         notes[n].tasks.removeAll { $0.id == taskID }
