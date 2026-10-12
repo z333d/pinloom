@@ -12,7 +12,7 @@ import SwiftUI
 /// Click copies, press and hold opens Markup, the corner cross discards.
 struct GrabArea: NSViewRepresentable {
     let item: Pegged
-    let line: Line
+    @ObservedObject var line: Line
 
     func makeNSView(context: Context) -> GrabView {
         let view = GrabView()
@@ -64,6 +64,14 @@ struct GrabArea: NSViewRepresentable {
             menu.addItem(ClosureMenuItem(L("Take down")) { line.discard(id) })
             menu.addItem(ClosureMenuItem(L("Move to Trash")) { line.trash(id) })
             return menu
+        }
+        if line.revealed, line.imageFocusRequest == id {
+            DispatchQueue.main.async { [weak view, weak line] in
+                guard let view, let line, line.revealed, line.imageFocusRequest == id else { return }
+                view.layoutSubtreeIfNeeded()
+                view.scrollToVisible(view.bounds)
+                if view.window?.isVisible == true { line.imageFocusRequest = nil }
+            }
         }
     }
 }

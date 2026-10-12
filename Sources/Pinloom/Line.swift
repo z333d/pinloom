@@ -39,6 +39,7 @@ final class Line: ObservableObject {
     var onLayoutChange: () -> Void = {}
     @Published var movingItemID: UUID?
     @Published var frontmostItemID: UUID?
+    @Published var imageFocusRequest: UUID?
     var onHideLine: () -> Void = {}
     var onPasteImage: () -> Void = {}
     var onChooseImages: () -> Void = {}
@@ -62,6 +63,7 @@ final class Line: ObservableObject {
             editingNoteID = nil
             noteFocusRequest = nil
             mediaFocusRequest = nil
+            imageFocusRequest = nil
         }
         guard revealed != shown else { return }
         revealed = shown

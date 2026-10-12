@@ -34,8 +34,16 @@ agrupa sonidos y abrir al iniciar sesión. Recuperar una nota y mostrar u oculta
 referencias aparecen solo cuando son útiles. Ocultar la línea no elimina datos.
 Descolgar conserva el archivo original; **Mover a la Papelera** lo elimina explícitamente.
 
-No observa carpetas de capturas, cambia los ajustes de captura ni registra
-atajos globales. Las imágenes añadidas permanecen hasta que las quitas.
+**Control–Opción–P** cuelga la captura del portapapeles; **Control–Opción–L** muestra
+u oculta la línea, incluso sobre otra app a pantalla completa. En **Opciones → Atajos…**
+puedes cambiar o desactivar las combinaciones y elegir la última imagen de la carpeta
+de capturas. Usa la carpeta del sistema o selecciona la de tu herramienta de capturas.
+Espera a que el archivo se guarde; los archivos que aún se están escribiendo se reintentan
+brevemente. Repetir el atajo no duplica el mismo archivo o imagen del portapapeles.
+Los atajos no necesitan acceso de Accesibilidad ni monitorización de entrada.
+La carpeta puede requerir permiso de macOS. El portapapeles y la carpeta solo se leen
+al solicitarlo. No observa carpetas ni cambia los ajustes de captura.
+Las imágenes añadidas permanecen hasta que las quitas.
 Las páginas se cargan al mostrar la línea y usan la sesión WebKit de Pinloom,
 sin compartir la sesión del navegador. Algunos inicios de sesión, ventanas
 emergentes y descargas requieren abrir en el navegador. Los formatos locales

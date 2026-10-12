@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 CONFIG="${1:-release}"
 APP="build/Pinloom.app"
-VERSION="0.1.4"
+VERSION="0.1.5"
 
 # Builds one architecture and prints the binary's path.
 # The Command Line Tools for macOS 27 ship an SDK whose SwiftUI needs a macro
@@ -71,7 +71,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIconFile</key><string>Pinloom</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
-  <key>CFBundleVersion</key><string>5</string>
+  <key>CFBundleVersion</key><string>6</string>
   <key>NSAppTransportSecurity</key>
   <dict><key>NSAllowsArbitraryLoadsInWebContent</key><true/></dict>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
@@ -80,7 +80,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSUIElement</key><true/>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSDesktopFolderUsageDescription</key>
-  <string>Pinloom opens images you choose from the Desktop to keep them visible alongside your work.</string>
+  <string>Pinloom opens images you choose and can hang the latest screenshot from your screenshot folder when you press its shortcut.</string>
 </dict>
 </plist>
 PLIST

@@ -12,6 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusMenu: NSMenu!
     private var cancellables = Set<AnyCancellable>()
     private var mouseTimer: Timer?
+    private let shortcuts = GlobalShortcuts()
+    private let recentScreenshot = RecentScreenshot()
+    private var shortcutSettings: ShortcutSettingsController?
+    private var importingScreenshot = false
 
     override init() {
         do { try LegacyDataMigration.run() }
@@ -70,6 +74,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.visibilityChanged(shown)
         }.store(in: &cancellables)
         setUpStatusItem()
+        shortcuts.onAction = { [weak self] action in
+            switch action {
+            case .hangScreenshot: self?.hangRecentScreenshot()
+            case .toggleLine: self?.toggle()
+            }
+        }
+        shortcuts.start()
 
         Markup.shared.onSaved = { [weak self] url in self?.line.reloadThumbnail(for: url) }
         line.onFall = { [weak self] item in self?.fall(item) }
@@ -114,6 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         stopMouseTracking()
+        shortcuts.stop()
         references.saveFrames()
         func pauseMedia(in view: NSView) {
             (view as? MediaCardBody)?.pause()
@@ -251,8 +263,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        menu.addItem(ClosureMenuItem(line.revealed ? L("Hide line") : L("Show line")) { [weak self] in self?.toggle() })
+        let visibility = ClosureMenuItem(line.revealed ? L("Hide line") : L("Show line")) { [weak self] in self?.toggle() }
+        if let key = shortcuts.shortcut(for: .toggleLine) {
+            key.apply(to: visibility)
+        }
+        menu.addItem(visibility)
         menu.addItem(.separator())
+        let recent = ClosureMenuItem(L("Hang recent screenshot")) { [weak self] in self?.hangRecentScreenshot() }
+        if let key = shortcuts.shortcut(for: .hangScreenshot) {
+            key.apply(to: recent)
+        }
+        menu.addItem(recent)
         menu.addItem(ClosureMenuItem(L("Paste")) { [weak self] in _ = self?.importImages(.general) })
         menu.addItem(ClosureMenuItem(L("Add files…")) { [weak self] in self?.chooseImages() })
         menu.addItem(ClosureMenuItem(L("New note")) { [weak self] in self?.createNote() })
@@ -284,6 +305,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         let options = NSMenuItem(title: L("Options"), action: nil, keyEquivalent: "")
         let settings = NSMenu()
+        settings.addItem(ClosureMenuItem(L("Shortcuts…")) { [weak self] in self?.openShortcutSettings() })
+        settings.addItem(.separator())
         let sound = ClosureMenuItem(L("Sounds")) { [weak self] in self?.line.soundOn.toggle() }
         sound.state = line.soundOn ? .on : .off
         settings.addItem(sound)
@@ -297,6 +320,49 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     // MARK: Sources and explicit actions
+
+    private func openShortcutSettings() {
+        if shortcutSettings == nil { shortcutSettings = ShortcutSettingsController(shortcuts: shortcuts, screenshots: recentScreenshot) }
+        shortcutSettings?.open()
+    }
+
+    private func hangRecentScreenshot() {
+        guard !importingScreenshot else { return }
+        if recentScreenshot.source == .clipboard {
+            do {
+                guard let url = try recentScreenshot.clipboardImage() else {
+                    showError(L("No screenshot found"), L("Copy a screenshot, then press the shortcut to hang it.")); return
+                }
+                if !hangScreenshot(url) { showError(L("Could not import image"), L("The image could not be read.")) }
+            } catch { showError(L("Could not import image"), error.localizedDescription) }
+        } else {
+            importingScreenshot = true
+            Task { [weak self] in
+                guard let self else { return }
+                defer { self.importingScreenshot = false }
+                do {
+                    guard let url = try await self.recentScreenshot.newestFile() else {
+                        self.showError(L("No screenshot found"), L("Choose the folder used by your screenshot tool in Shortcuts.")); return
+                    }
+                    // Capture providers may still be finishing a newly created file.
+                    for attempt in 0..<11 {
+                        if self.hangScreenshot(url) { return }
+                        if attempt < 10 { try await Task.sleep(for: .milliseconds(200)) }
+                    }
+                    self.showError(L("Could not import image"), L("The image could not be read."))
+                } catch { self.showError(L("Could not import image"), error.localizedDescription) }
+            }
+        }
+    }
+
+    @discardableResult
+    private func hangScreenshot(_ url: URL) -> Bool {
+        let existing = line.items.first { $0.url.imageIdentityPath == url.imageIdentityPath && !$0.falling }
+        guard let id = existing?.id ?? line.hang(url) else { return false }
+        line.imageFocusRequest = id
+        showLineOnPurpose()
+        return true
+    }
 
     private func placeLine(on screen: NSScreen? = nil) {
         guard let screen = screen ?? LinePanel.screenUnderPointer() else { return }

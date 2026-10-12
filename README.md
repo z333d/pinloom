@@ -18,6 +18,20 @@ Click the pin icon in the menu bar to show or hide the line. Right-click it to
 open the menu. The line stays open until you hide it; moving the pointer into
 the menu bar does not open it.
 
+- **Control–Option–P** hangs a screenshot from the clipboard and shows the line.
+- **Control–Option–L** shows or hides the line, including while another app is full screen.
+- **Options → Shortcuts…** lets you record another combination, disable either shortcut,
+  or choose **Latest image in screenshot folder** instead of the clipboard. The folder
+  source uses macOS's screenshot location; choose your screenshot tool's folder for
+  third-party captures. A selected folder accepts its newest image, including exports.
+  Files still being written are retried briefly. Wait until the capture is saved before
+  invoking the folder shortcut. Repeating the shortcut keeps one card for the same file
+  or unchanged clipboard image. The line scrolls to that card without taking keyboard focus.
+
+Shortcuts work globally without Accessibility or Input Monitoring access. A conflicting
+combination is rejected without replacing the previous binding. Folder access may require
+macOS permission. Clipboard data and screenshot folders are read only when requested.
+
 - **Paste** adds a clipboard image, copied video file, or webpage address.
 - **Add files…** opens a picker for images and local videos. You can also drop files or links on the line or menu bar icon.
 - **Add webpage…** opens an address field. Web cards support scrolling, text selection, links, back/forward, reload and opening in your browser.
@@ -38,9 +52,9 @@ contains reset positions and take images down; **Options** contains sounds and
 open at login. Manually added images stay until you remove them; scroll
 horizontally when they do not fit.
 
-Pinloom does not watch screenshot folders, change capture settings, or register
-global hotkeys. Keep using your preferred screenshot tool and add the images
-you need. Standard text editing commands work inside notes.
+Pinloom does not watch screenshot folders or change capture settings. Keep using
+your preferred screenshot tool and add the images you need. Standard text editing
+commands work inside notes.
 
 Webpages load only after you show the line. They use Pinloom's own WebKit session,
 not your browser's signed-in session. Some sign-in flows, popups and downloads
